@@ -9,48 +9,47 @@
 #pragma once
 
 #include <memory>
-#include <type_traits>
+#include <functional>
+
+#include "RopeNode.h"
 
 namespace brick
 {
-    
-template <class Unit>
+	
 class Rope {
 public:
-    template <class V>
-    struct Node {
-        Node<V>* left;
-        Node<V>* right;
-        size_t weight;
-        bool is_leaf;
-        
-        Leaf<V>* asLeaf() {
-            return static_cast<Leaf<V>*>(this);
-        }
-    };
-    
-    template <class V>
-    struct Leaf: public Node<V> {
-        std::vector<V> values;
-    };
-
-    Rope(Rope&& r);
-    
-//    template <class T>
-//    Rope(std::enable_if_t<std::is_same_v<T, Node<Unit>>,
-//                          T>&& left,
-//         std::enable_if_t<std::is_same_v<T, Node<Unit>>,
-//                          T>&& right);
-    
-    
-    Rope(const Rope&) = delete;
-    Rope& operator=(const Rope&) = delete;
-    
+	Rope(Rope&& l, Rope&& r);
+	
+	Rope() = default;
+	Rope(Rope&& r) = default;
+	Rope& operator=(Rope&&) = default;
+	Rope(const Rope&) = delete;
+	Rope& operator=(const Rope&) = delete;
+	
+	template <class Encoder>
+    void insert(const char* bytes, size_t len, size_t pos);
+	
+    static const size_t npos = -1;
 private:
-    void index(int i);
-    void concat(const Rope& l);
+    void insert(const detail::CodePointList cp, size_t pos);
     
-    std::unique_ptr<Node<Unit>> root_ {nullptr};
+	// breadth first traversal
+    void bft(std::function<void(const detail::RopeNode&)> func, bool rightOnly);
+    void travelToRoot(detail::RopeNode* start, std::function<bool(detail::RopeNode&)> func);
+    void updateHeight(detail::RopeNode* start);
+    
+	bool needBalance();
+	void rebalance();
+    std::tuple<detail::RopeNodePtr /* leaf */,
+                size_t /* pos */> get(size_t index);
+    void newLeaf(detail::RopeNodePtr leaf, size_t pos, const detail::CodePointList& value);
+    
+	std::unique_ptr<detail::RopeNode> root_;
 };
-
+	
+template <class Encoder>
+void Rope::insert(const char* bytes, size_t len, size_t pos) {
+    insert(Encoder::encode(bytes, len), pos);
+}
+    
 }   // namespace brick
