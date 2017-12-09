@@ -3,7 +3,7 @@
 //  Fans
 //
 //  Created by tqtifnypmb on 08/12/2017.
-//  Copyright © 2017 newsjet. All rights reserved.
+//  Copyright © 2017 tqtifnypmb. All rights reserved.
 //
 
 #include "RopeNode.h"

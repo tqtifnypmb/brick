@@ -3,7 +3,7 @@
 //  Fans
 //
 //  Created by tqtifnypmb on 06/12/2017.
-//  Copyright © 2017 newsjet. All rights reserved.
+//  Copyright © 2017 tqtifnypmb. All rights reserved.
 //
 
 #pragma once
@@ -20,6 +20,8 @@ namespace brick
 	
 class Rope {
 public:
+    using Range = std::pair<size_t, size_t>;
+    
     Rope(std::vector<std::unique_ptr<detail::RopeNode>>& cplist);
 	Rope(Rope&& l, Rope&& r);
 	
@@ -31,6 +33,8 @@ public:
 	
 	template <class Converter>
     void insert(const char* bytes, size_t len, size_t pos);
+    
+    void erase(const Range& range);
     
     std::string string() const;
     

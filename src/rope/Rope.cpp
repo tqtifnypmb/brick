@@ -3,7 +3,7 @@
 //  Fans
 //
 //  Created by tqtifnypmb on 07/12/2017.
-//  Copyright © 2017 newsjet. All rights reserved.
+//  Copyright © 2017 tqtifnypmb. All rights reserved.
 //
 
 #include "Rope.h"
@@ -249,12 +249,10 @@ void Rope::insert(const detail::CodePointList& cplist, size_t index) {
             updateLength(leaf->parent(), cplist.size());
         } else {    // create new leaf
             auto newRope = Rope(leaves);
-            std::cout<<"values: "<<newRope.string()<<std::endl;
             newLeaf(leaf, pos, std::move(newRope.root_));
         }
     } else {
-//        auto newRope = Rope(leaves);
-//        newLeaf(leaf, pos, std::move(newRope.root_));
+        // FIXME:
     }
 }
     
@@ -262,7 +260,6 @@ void Rope::insert(const detail::CodePointList& cplist, size_t index) {
 void Rope::newLeaf(RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::RopeNode> subRope) {
     assert(leaf->isLeaf());
     
-    std::cout<<pos<<" "<<leaf->values().size()<<std::endl;
     if (pos == 0) {
         auto oldParent = leaf->parent();
         auto newParent = std::make_shared<RopeNode>(subRope->height() + 1, subRope->length());
@@ -316,6 +313,10 @@ void Rope::newLeaf(RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::RopeNod
     }
 }
  
+void Rope::erase(const Range& range) {
+        
+}
+    
 std::string Rope::string() const {
     std::string str;
     std::stack<RopeNode*> s;
