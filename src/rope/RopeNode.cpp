@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <cassert>
 
 namespace brick
 {
@@ -28,6 +29,8 @@ struct NodeLeaf: NodeImpl {
 	CodePointList codes;
 };
 	
+RopeNode::~RopeNode() {}
+    
 RopeNode::RopeNode(size_t height, size_t length, RopeNodePtr left, RopeNodePtr right, RopeNode* parent) {
 	NodeImpl* impl = new NodeImpl();
 	impl->height = height;
@@ -35,7 +38,27 @@ RopeNode::RopeNode(size_t height, size_t length, RopeNodePtr left, RopeNodePtr r
     impl->left = left;
     impl->right = right;
     impl->parent = parent;
+    
+    if (left) {
+        left->setParent(this);
+    }
+    
+    if (right) {
+        right->setParent(this);
+    }
+    
 	impl_ = std::unique_ptr<NodeImpl>(impl);
+}
+    
+RopeNode::RopeNode(const std::vector<CodePoint>&& cps, RopeNode* parent) {
+    NodeLeaf* impl = new NodeLeaf();
+    impl->height = 0;
+    impl->length = cps.size();
+    impl->left = nullptr;
+    impl->right = nullptr;
+    impl->parent = parent;
+    impl->codes = std::move(cps);
+    impl_ = std::unique_ptr<NodeImpl>(impl);
 }
 	
 RopeNode::RopeNode(const CodePoint& cp, RopeNode* parent): RopeNode(std::vector<CodePoint>(1, cp), parent) {}
@@ -61,6 +84,10 @@ void RopeNode::setHeight(size_t height) {
 	
 size_t RopeNode::length() const {
 	return impl_->length;
+}
+    
+void RopeNode::setLength(size_t len) {
+    impl_->length = len;
 }
 	
 RopeNodePtr RopeNode::left() const {
