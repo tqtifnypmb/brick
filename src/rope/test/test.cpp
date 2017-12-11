@@ -7,11 +7,13 @@
 //
 
 #include "../Rope.h"
+#include "../RopeNode.h"
 #include "../../converter/Converter.h"
 
 #include <gtest/gtest.h>
 
 using namespace brick;
+using namespace brick::detail;
 
 namespace
 {
@@ -31,6 +33,48 @@ protected:
     
 TEST_F(AsciiRopeTest, build) {
     EXPECT_EQ(input, rope.string());
+}
+
+TEST_F(AsciiRopeTest, get) {
+    for (size_t i = 0; i < input.length(); ++i) {
+        auto [leaf, pos] = rope.get(rope.root_.get(), i);
+        EXPECT_EQ(true, leaf->isLeaf());
+        EXPECT_EQ(0, pos);
+        
+        auto str = ASCIIConverter::decode(leaf->values());
+        EXPECT_EQ(str, std::string(1, input[i]));
+    }
+}
+ 
+TEST_F(AsciiRopeTest, next_leaf) {
+    auto [leftmost, pos] = rope.get(rope.root_.get(), 0);
+    for (size_t i = 0; i < input.length(); ++i) {
+        EXPECT_EQ(true, leftmost->isLeaf());
+        auto str = ASCIIConverter::decode(leftmost->values());
+        EXPECT_EQ(str, std::string(1, input[i]));
+        
+        leftmost = rope.nextLeaf(leftmost.get());
+        
+        if (leftmost == nullptr) {
+            break;
+        }
+    }
+}
+    
+TEST_F(AsciiRopeTest, prev_leaf) {
+    auto [rightmost, pos] = rope.get(rope.root_.get(), input.length() - 1);
+    for (int i = input.length() - 1; i >= 0; ++i) {
+        EXPECT_EQ(true, rightmost->isLeaf());
+        
+        auto str = ASCIIConverter::decode(rightmost->values());
+        EXPECT_EQ(str, std::string(1, input[i]));
+        
+        rightmost = rope.prevLeaf(rightmost.get());
+        
+        if (rightmost) {
+            break;
+        }
+    }
 }
 
 TEST_F(AsciiRopeTest, ascii_insert_back) {
@@ -53,16 +97,32 @@ TEST_F(AsciiRopeTest, ascii_insert_middle) {
     EXPECT_EQ(result, rope.string());
 }
 
-TEST_F(AsciiRopeTest, erase_from_front) {
-    auto toDelete = std::make_pair(0, input.length() / 2);
+TEST_F(AsciiRopeTest, erase_from_front_single_leaf) {
+    auto toDelete = Rope::Range(0, 1);
+    rope.erase(toDelete);
+    
+    auto result = input.erase(toDelete.first, toDelete.second);
+    EXPECT_EQ(result, rope.string());
+}
+  
+TEST_F(AsciiRopeTest, erase_from_back_single_leaf) {
+    auto toDelete = Rope::Range(input.length() - 1, 1);
+    rope.erase(toDelete);
+    
+    auto result = input.erase(toDelete.first, toDelete.second);
+    EXPECT_EQ(result, rope.string());
+}
+    
+TEST_F(AsciiRopeTest, erase_from_front_multiple_leaves) {
+    auto toDelete = Rope::Range(0, input.length() / 2);
     rope.erase(toDelete);
     
     auto result = input.erase(toDelete.first, toDelete.second);
     EXPECT_EQ(result, rope.string());
 }
  
-TEST_F(AsciiRopeTest, erase_from_back) {
-    auto toDelete = std::make_pair(input.length() / 2, input.length());
+TEST_F(AsciiRopeTest, erase_from_back_multiple_leaves) {
+    auto toDelete = Rope::Range(input.length() / 2, input.length() / 2);
     rope.erase(toDelete);
     
     auto result = input.erase(toDelete.first, toDelete.second);
@@ -70,7 +130,7 @@ TEST_F(AsciiRopeTest, erase_from_back) {
 }
  
 TEST_F(AsciiRopeTest, erase_from_middle) {
-    auto toDelete = std::make_pair(input.length() / 4, input.length() / 2);
+    auto toDelete = Rope::Range(input.length() / 4, input.length() / 4);
     rope.erase(toDelete);
     
     auto result = input.erase(toDelete.first, toDelete.second);

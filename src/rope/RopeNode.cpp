@@ -96,7 +96,9 @@ RopeNodePtr RopeNode::left() const {
 	
 void RopeNode::setLeft(RopeNodePtr left) {
     impl_->left = left;
-    left->setParent(this);
+    if (left != nullptr) {
+        left->setParent(this);
+    }
 }
 	
 RopeNodePtr RopeNode::right() const {
@@ -105,7 +107,9 @@ RopeNodePtr RopeNode::right() const {
 	
 void RopeNode::setRight(RopeNodePtr right) {
     impl_->right = right;
-    right->setParent(this);
+    if (right != nullptr) {
+        right->setParent(this);
+    }
 }
     
 RopeNode* RopeNode::parent() const {
@@ -117,7 +121,11 @@ void RopeNode::setParent(RopeNode* p) {
 }
     
 bool RopeNode::isLeftChild() const {
-    return impl_->parent->left().get() == this;
+    if (impl_->parent != nullptr) {
+        return impl_->parent->left().get() == this;
+    } else {
+        return false;
+    }
 }
     
 CodePointList& RopeNode::values() {

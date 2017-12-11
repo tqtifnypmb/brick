@@ -60,6 +60,10 @@ public:
 		return height() == 0;
 	}
     
+    bool isRoot() const {
+        return parent() == nullptr;
+    }
+    
     bool isLeftChild() const;
     CodePointList& values();
 	

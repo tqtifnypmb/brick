@@ -38,21 +38,25 @@ public:
     
     std::string string() const;
     
-private:
+//private:
     static const size_t npos = -1;
     
     void insert(const detail::CodePointList& cp, size_t pos);
     
-	// breadth first traversal
+	// tree traversal
     void bft(std::function<void(const detail::RopeNode&)> func, bool rightOnly);
     void travelToRoot(detail::RopeNode* start, std::function<bool(detail::RopeNode&)> func);
+    detail::RopeNodePtr nextLeaf(detail::RopeNode* current);
+    detail::RopeNodePtr prevLeaf(detail::RopeNode* current);
+    void removeNode(detail::RopeNode* node);
+	
+	// meta info maintenance
     void updateHeight(detail::RopeNode* start);
     void updateLength(detail::RopeNode* start, size_t delta);
     
 	bool needBalance();
 	void rebalance();
-    std::tuple<detail::RopeNodePtr /* leaf */,
-                size_t /* pos */> get(size_t index);
+    std::tuple<detail::RopeNodePtr /* leaf */, size_t /* pos */> get(detail::RopeNode* root, size_t index);
     void newLeaf(detail::RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::RopeNode> subRope);
     
 	std::unique_ptr<detail::RopeNode> root_;
