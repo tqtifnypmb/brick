@@ -76,7 +76,7 @@ private:
     void travelToRoot(gsl::not_null<detail::RopeNode*> start, std::function<bool(detail::RopeNode&)> func);
     detail::RopeNodePtr nextLeaf(gsl::not_null<detail::RopeNode*> current);
     detail::RopeNodePtr prevLeaf(gsl::not_null<detail::RopeNode*> current);
-    void removeLeaf(gsl::not_null<detail::RopeNodePtr> node);
+    void removeLeaf(detail::RopeNodePtr node);
     
     size_t lengthOfWholeRope(gsl::not_null<detail::RopeNode*> root);
 	

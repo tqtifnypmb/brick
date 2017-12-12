@@ -187,7 +187,7 @@ RopeNodePtr Rope::prevLeaf(not_null<RopeNode*> current) {
     return leaf;
 }
     
-void Rope::removeLeaf(not_null<RopeNodePtr> node) {
+void Rope::removeLeaf(RopeNodePtr node) {
     Expects(node->isLeaf());
     
     auto isLeftChild = node->isLeftChild();     // this have to happend before node detach from parent node
@@ -200,11 +200,12 @@ void Rope::removeLeaf(not_null<RopeNodePtr> node) {
     }
     
     // 2. walk along the path from removed node
-    //    to root, find the last node which has
+    //    to root, find the first node which has
     //    no children
-    RopeNode* invalidNode = nullptr;
+    RopeNode* invalidNode = node.get();
     std::function<bool(RopeNode&)> validNodeFinder = [&invalidNode](RopeNode& n) {
-        if (n.left() != nullptr || n.right() != nullptr) {
+        if ((n.left() != nullptr && n.left().get() != invalidNode) ||
+            (n.right() != nullptr && n.right().get() != invalidNode)) {
             return true;
         } else {
             invalidNode = &n;
@@ -214,7 +215,7 @@ void Rope::removeLeaf(not_null<RopeNodePtr> node) {
     travelToRoot(node->parent(), validNodeFinder);
     
     // not found, only length changed
-    if (invalidNode == nullptr) {
+    if (invalidNode == node.get()) {
         if (isLeftChild) {
             auto rightLeaf = node->parent()->right();
             Expects(rightLeaf != nullptr);
@@ -234,21 +235,41 @@ void Rope::removeLeaf(not_null<RopeNodePtr> node) {
         
         return;
     }
+
+    // FIXME: not test cover yet
     
     // 3. remove the invalid sub-rope
     size_t height = 0;
     bool isFromLeft = false;
+    int deltaLen = 0;
     if (invalidNode->isLeftChild()) {
-        invalidNode->parent()->setLeft(nullptr);
+        auto invalidNodeLen = invalidNode->parent()->length();
+        auto rightChild = invalidNode->parent()->right();
+        Expects(rightChild != nullptr);
+        
         height = invalidNode->parent()->right()->height() + 1;
         isFromLeft = true;
+        
+        invalidNode->parent()->setLeft(rightChild);
+        invalidNode->parent()->setRight(nullptr);
+        
+        if (invalidNode->parent()->parent()) {
+            auto rightChildLen = invalidNode->parent()->parent()->length() - invalidNode->parent()->length();
+            invalidNode->parent()->setLength(rightChildLen);
+            
+            deltaLen = rightChildLen - invalidNodeLen;
+        } else {
+            auto rightChildLen = lengthOfWholeRope(rightChild.get());
+            invalidNode->parent()->setLength(rightChildLen);
+            
+            deltaLen = rightChildLen - invalidNodeLen;
+        }
     } else {
         invalidNode->parent()->setRight(nullptr);
         height = invalidNode->parent()->left()->height() + 1;
     }
     
     // 4. update height & length
-    auto deltaLen = -node->length();
     std::function<bool(RopeNode&)> infoUpdator = [deltaLen, &height, &isFromLeft](RopeNode& n) {
         if (isFromLeft) {
             n.setLength(n.length() + deltaLen);
@@ -540,9 +561,11 @@ std::string Rope::string() const {
 }
     
 bool Rope::checkHeight() {
+    // 1. collect height of all sub-ropes
+    
     std::map<RopeNode*, std::vector<size_t>> heightList;
     RopeNode* lastNode = nullptr;
-    std::function<bool(RopeNode&)> height_checker = [&lastNode, &heightList](RopeNode& node) {
+    std::function<bool(RopeNode&)> collect_height = [&lastNode, &heightList](RopeNode& node) {
         heightList[&node].push_back(lastNode->height() + 1);
         lastNode = &node;
         
@@ -553,11 +576,12 @@ bool Rope::checkHeight() {
     while (leaf != nullptr) {
         lastNode = leaf.get();
         
-        travelToRoot(leaf->parent(), height_checker);
+        travelToRoot(leaf->parent(), collect_height);
         
         leaf = nextLeaf(leaf.get());
     }
     
+    // 2. check it
     for (const auto& p : heightList) {
         auto height = p.first->height();
         size_t expect = 0;
@@ -577,7 +601,7 @@ bool Rope::checkLength() {
     
     std::map<RopeNode*, size_t> lengthList;
     size_t delta = 0;
-    std::function<bool(RopeNode&)> length_checker = [&delta, &lengthList](RopeNode& node) {
+    std::function<bool(RopeNode&)> collect_length = [&delta, &lengthList](RopeNode& node) {
         auto& value = lengthList[&node];
         value += delta;
         return false;
@@ -587,7 +611,7 @@ bool Rope::checkLength() {
     while (leaf != nullptr) {
         delta = leaf->length();
         
-        travelToRoot(leaf->parent(), length_checker);
+        travelToRoot(leaf->parent(), collect_length);
         
         leaf = nextLeaf(leaf.get());
     }
@@ -605,7 +629,6 @@ bool Rope::checkLength() {
             }
             
             if (length != expect) {
-                std::cout<<"len: "<<length<<"expect: "<<expect<<std::endl;
                 return false;
             }
         } else {
