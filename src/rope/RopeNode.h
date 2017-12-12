@@ -28,8 +28,6 @@ using RopeNodePtr = std::shared_ptr<RopeNode>;
 class RopeNode {
 public:
     
-    static constexpr size_t max_leaf_length = 1;
-    
 	RopeNode(size_t height, size_t length, RopeNodePtr left = nullptr, RopeNodePtr = nullptr, RopeNode* parent = nullptr);
 	RopeNode(const CodePoint& cp, RopeNode* parent = nullptr);
 	RopeNode(const std::vector<CodePoint>& cps, RopeNode* parent = nullptr);
@@ -63,6 +61,8 @@ public:
     bool isRoot() const {
         return parent() == nullptr;
     }
+    
+    bool isEmpty() const;
     
     bool isLeftChild() const;
     CodePointList& values();

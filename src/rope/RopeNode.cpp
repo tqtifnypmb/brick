@@ -120,6 +120,15 @@ void RopeNode::setParent(RopeNode* p) {
     impl_->parent = p;
 }
     
+bool RopeNode::isEmpty() const {
+    if (isLeaf()) {
+        auto leafImpl = static_cast<NodeLeaf*>(impl_.get());
+        return leafImpl->codes.empty();
+    } else {
+        throw std::invalid_argument("Undefined method for non-leaf node");
+    }
+}
+    
 bool RopeNode::isLeftChild() const {
     if (impl_->parent != nullptr) {
         return impl_->parent->left().get() == this;
