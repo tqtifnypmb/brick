@@ -42,30 +42,19 @@ TEST_F(AsciiRopeTest, get) {
     for (size_t i = 0; i < input.length(); ++i) {
         auto [leaf, pos] = rope.get_test(rope.root_test(), i);
         EXPECT_EQ(true, leaf->isLeaf());
-        EXPECT_EQ(0, pos);
         
         auto str = ASCIIConverter::decode(leaf->values());
-        EXPECT_EQ(str, std::string(1, input[i]));
+        EXPECT_EQ(std::string(1, str[pos]), std::string(1, input[i]));
     }
-}
-    
-TEST_F(AsciiRopeTest, get_max_limit) {
-    auto [rightmost, pos] = rope.get_test(rope.root_test(), input.length());
-    auto [rightmost2, pos2] = rope.get_test(rope.root_test(), input.length() + 1);
-    auto [rightmost3, pos3] = rope.get_test(rope.root_test(), input.length() - 1);
-    EXPECT_EQ(true, rightmost->isLeaf());
-    EXPECT_EQ(pos, pos2 - 1);
-    EXPECT_EQ(pos, pos3 + 1);
-    EXPECT_EQ(rightmost.get(), rightmost2.get());
-    EXPECT_EQ(rightmost.get(), rightmost3.get());
 }
     
 TEST_F(AsciiRopeTest, next_leaf) {
     auto [leftmost, pos] = rope.get_test(rope.root_test(), 0);
-    for (size_t i = 0; i < input.length(); ++i) {
+    std::string value;
+    while (leftmost != nullptr) {
         EXPECT_EQ(true, leftmost->isLeaf());
         auto str = ASCIIConverter::decode(leftmost->values());
-        EXPECT_EQ(str, std::string(1, input[i]));
+        value += str;
         
         leftmost = rope.nextLeaf_test(leftmost.get());
         
@@ -73,19 +62,25 @@ TEST_F(AsciiRopeTest, next_leaf) {
             break;
         }
     }
+    EXPECT_EQ(value, input);
 }
     
 TEST_F(AsciiRopeTest, prev_leaf) {
     auto [rightmost, pos] = rope.get_test(rope.root_test(), input.length() - 1);
-    for (int i = input.length() - 1; i >= 0; ++i) {
+    while (rightmost != nullptr) {
         EXPECT_EQ(true, rightmost->isLeaf());
         
-        auto str = ASCIIConverter::decode(rightmost->values());
-        EXPECT_EQ(str, std::string(1, input[i]));
+        auto prev = rope.prevLeaf_test(rightmost.get());
+        if (prev != nullptr) {
+            auto next = rope.nextLeaf_test(prev.get());
+            
+            if (next != nullptr) {
+                EXPECT_EQ(next.get(), rightmost.get());
+            }
+        }
         
-        rightmost = rope.prevLeaf_test(rightmost.get());
-        
-        if (rightmost) {
+        rightmost = prev;
+        if (rightmost == nullptr) {
             break;
         }
     }
@@ -167,6 +162,16 @@ TEST_F(AsciiRopeTest, erase_from_middle) {
     EXPECT_EQ(true, rope.checkLength());
 }
     
+TEST_F(AsciiRopeTest, erase_all) {
+    auto toDelete = Rope::Range(0, input.length());
+    rope.erase(toDelete);
+    
+    auto result = input.erase(toDelete.first, toDelete.second);
+    EXPECT_EQ(result, rope.string());
+    EXPECT_EQ(true, rope.checkHeight());
+    EXPECT_EQ(true, rope.checkLength());
+}
+    
 TEST_F(AsciiRopeTest, concate) {
     auto rope2 = Rope();
     rope2.insert<ASCIIConverter>(insert.c_str(), insert.length(), 0);
@@ -189,7 +194,6 @@ TEST_F(AsciiRopeTest, rebalance) {
    
 TEST_F(AsciiRopeTest, length_of_rope) {
     auto len = rope.lengthOfWholeRope_test(rope.root_test());
-    
     EXPECT_EQ(input.length(), len);
 }
     

@@ -47,6 +47,7 @@ RopeNode::RopeNode(size_t height, size_t length, RopeNodePtr left, RopeNodePtr r
         right->setParent(this);
     }
     
+    leaf_ = false;
 	impl_ = std::unique_ptr<NodeImpl>(impl);
 }
     
@@ -58,6 +59,8 @@ RopeNode::RopeNode(const std::vector<CodePoint>&& cps, RopeNode* parent) {
     impl->right = nullptr;
     impl->parent = parent;
     impl->codes = std::move(cps);
+    
+    leaf_ = true;
     impl_ = std::unique_ptr<NodeImpl>(impl);
 }
 	
@@ -71,6 +74,8 @@ RopeNode::RopeNode(const std::vector<CodePoint>& cps, RopeNode* parent) {
 	impl->right = nullptr;
     impl->parent = parent;
 	impl->codes.assign(cps.begin(), cps.end());
+    
+    leaf_ = true;
 	impl_ = std::unique_ptr<NodeImpl>(impl);
 }
 	

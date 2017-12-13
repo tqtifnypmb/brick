@@ -29,6 +29,10 @@ namespace
 namespace brick
 {
 
+Rope::Rope() {
+    root_ = std::make_unique<RopeNode>(0, 0, nullptr, nullptr);
+}
+    
 Rope::Rope(std::vector<std::unique_ptr<RopeNode>>& leaves) {
     std::map<RopeNode*, size_t> lenCache;
     
@@ -64,16 +68,16 @@ Rope::Rope(std::vector<std::unique_ptr<RopeNode>>& leaves) {
             len = left->length();
         } else {
             len = left->length();
-            RopeNode* right = left->right().get();
-            while (right) {
-                auto ite = lenCache.find(right);
+            RopeNode* r = left->right().get();
+            while (r) {
+                auto ite = lenCache.find(r);
                 if (ite != lenCache.end()) {
                     len += ite->second;
                     break;
                 }
                 
-                len += right->length();
-                right = right->right().get();
+                len += r->length();
+                r = r->right().get();
             }
             lenCache[left.get()] = len;
         }
@@ -160,9 +164,12 @@ RopeNodePtr Rope::prevLeaf(not_null<RopeNode*> current) {
     // 1. find the prev nearest sub-rope
     auto isTravelFromRight = !current->isLeftChild();
     RopeNodePtr nearestNode = nullptr;
-    std::function<bool(RopeNode&)> nearestFinder = [&isTravelFromRight, &nearestNode](RopeNode& node) {
+    size_t nodeLen = 0;
+    
+    std::function<bool(RopeNode&)> nearestFinder = [&isTravelFromRight, &nearestNode, &nodeLen](RopeNode& node) {
         if (isTravelFromRight) {
             if (node.left() != nullptr) {
+                nodeLen = node.length();
                 nearestNode = node.left();
                 return true;
             }
@@ -182,7 +189,7 @@ RopeNodePtr Rope::prevLeaf(not_null<RopeNode*> current) {
     }
     
     // 2. get rightmost leaf
-    auto [leaf, pos] = get(nearestNode.get(), nearestNode->length() - 1);
+    auto [leaf, pos] = get(nearestNode.get(), nodeLen - 1);
     Ensures(leaf->isLeaf());
     return leaf;
 }
@@ -201,7 +208,7 @@ void Rope::removeLeaf(RopeNodePtr node) {
     
     // 2. walk along the path from removed node
     //    to root, find the first node which has
-    //    no children
+    //    at least one child whick has leaf
     RopeNode* invalidNode = node.get();
     std::function<bool(RopeNode&)> validNodeFinder = [&invalidNode](RopeNode& n) {
         if ((n.left() != nullptr && n.left().get() != invalidNode) ||
@@ -213,21 +220,13 @@ void Rope::removeLeaf(RopeNodePtr node) {
         }
     };
     travelToRoot(node->parent(), validNodeFinder);
-    
-    // not found, only length changed
+   
+    // not found, it means we just removed leaf
+    // so height of rope isn't changed, we only need to update length
     if (invalidNode == node.get()) {
         if (isLeftChild) {
-            auto rightLeaf = node->parent()->right();
-            Expects(rightLeaf != nullptr);
-            Expects(rightLeaf->isLeaf());
-            
-            auto oldLen = node->parent()->length();
-            auto newLen = rightLeaf->length();
-            node->parent()->setLeft(rightLeaf);
-            node->parent()->setRight(nullptr);
-            node->parent()->setLength(newLen);
-            
-            updateLength(rightLeaf->parent(), -oldLen);
+            node->parent()->setLength(0);
+            updateLength(node->parent(), -node->length());
         } else {
             auto len = node->length();
             updateLength(node->parent(), -len);
@@ -242,7 +241,12 @@ void Rope::removeLeaf(RopeNodePtr node) {
     size_t height = 0;
     bool isFromLeft = false;
     int deltaLen = 0;
-    if (invalidNode->isLeftChild()) {
+    if (invalidNode->isRoot()) {
+        auto emptyRope = Rope();
+        root_ = std::move(emptyRope.root_);
+        return;
+    } else if (invalidNode->isLeftChild()) {
+        
         auto invalidNodeLen = invalidNode->parent()->length();
         auto rightChild = invalidNode->parent()->right();
         Expects(rightChild != nullptr);
@@ -253,18 +257,12 @@ void Rope::removeLeaf(RopeNodePtr node) {
         invalidNode->parent()->setLeft(rightChild);
         invalidNode->parent()->setRight(nullptr);
         
-        if (invalidNode->parent()->parent()) {
-            auto rightChildLen = invalidNode->parent()->parent()->length() - invalidNode->parent()->length();
-            invalidNode->parent()->setLength(rightChildLen);
-            
-            deltaLen = rightChildLen - invalidNodeLen;
-        } else {
-            auto rightChildLen = lengthOfWholeRope(rightChild.get());
-            invalidNode->parent()->setLength(rightChildLen);
-            
-            deltaLen = rightChildLen - invalidNodeLen;
-        }
+        auto rightChildLen = lengthOfWholeRope(rightChild.get());
+        invalidNode->parent()->setLength(rightChildLen);
+        
+        deltaLen = static_cast<int>(rightChildLen - invalidNodeLen);
     } else {
+        deltaLen = static_cast<int>(lengthOfWholeRope(invalidNode));
         invalidNode->parent()->setRight(nullptr);
         height = invalidNode->parent()->left()->height() + 1;
     }
@@ -296,6 +294,10 @@ size_t Rope::lengthOfWholeRope(not_null<RopeNode*> root) {
 }
     
 void Rope::updateHeight(not_null<RopeNode*> start) {
+    if (start->isRoot()) {
+        return;
+    }
+    
     size_t height = start->height();
     std::function<bool(RopeNode&)> height_updator = [&height](RopeNode& node) {
         height += 1;
@@ -310,7 +312,7 @@ void Rope::updateHeight(not_null<RopeNode*> start) {
 }
     
 void Rope::updateLength(not_null<RopeNode*> start, int delta) {
-    if (delta == 0) {
+    if (delta == 0 || start->isRoot()) {
         return;
     }
     
@@ -360,13 +362,19 @@ void Rope::rebalance() {
         }
     }
     
-    auto newRope = Rope(leaves);
-    root_ = std::move(newRope.root_);
+    if (!leaves.empty()) {
+        auto newRope = Rope(leaves);
+        root_ = std::move(newRope.root_);
+    } else {
+        auto newRope = Rope();
+        root_ = std::move(newRope.root_);
+    }
 }
  
-/// get the nearest node at index
-std::tuple<RopeNodePtr, size_t> Rope::get(not_null<RopeNode*> root, size_t index) {
+/// get leaf at index if exist
+std::tuple<RopeNodePtr, size_t> Rope::get(not_null<RopeNode*> root, size_t index, RopeNode** lastVisitedNode) {
     RopeNodePtr node = nullptr;
+    RopeNode* lastNode = root.get();
     if (index >= root->length()) {
         index -= root->length();
         node = root->right();
@@ -376,18 +384,28 @@ std::tuple<RopeNodePtr, size_t> Rope::get(not_null<RopeNode*> root, size_t index
     
     while (node != nullptr) {
         if (node->isLeaf()) {
+            Expects(index <= node->values().size());
+            if (lastVisitedNode != nullptr) {
+                *lastVisitedNode = lastNode;
+            }
             return std::make_tuple(node, index);
         } else if (index >= node->length()) {
             index -= node->length();
+            lastNode = node.get();
             node = node->right();
         } else if (node->left()) {
+            lastNode = node.get();
             node = node->left();
         } else {
             throw std::domain_error("Rope contains node without leaves");
         }
     }
     
-    assert(false);
+    // found a non-leaf node
+    if (lastVisitedNode != nullptr) {
+        *lastVisitedNode = lastNode;
+    }
+    return std::make_tuple(nullptr, index);
 }
     
 void Rope::insert(const detail::CodePointList& cplist, size_t index) {
@@ -416,49 +434,81 @@ void Rope::insert(const detail::CodePointList& cplist, size_t index) {
         return;
     }
     
-    auto [leaf, pos] = get(root_.get(), index);
-    if (leaf->length() + cplist.size() < Rope::max_leaf_length) {
-        auto values = leaf->values();
-        auto insert_point = values.begin();
-        std::advance(insert_point, pos);
-        values.insert(insert_point, cplist.begin(), cplist.end());
-        updateLength(leaf->parent(), cplist.size());
-    } else {    
+    RopeNode* lastVisitedNode;
+    auto [leaf, pos] = get(root_.get(), index, &lastVisitedNode);
+    if (leaf != nullptr) {
+        Expects(leaf->isLeaf());
+        
+        if (leaf->length() + cplist.size() < Rope::max_leaf_length) {
+            auto& values = leaf->values();
+            auto insert_point = values.begin();
+            std::advance(insert_point, pos);
+            values.insert(insert_point, cplist.begin(), cplist.end());
+            leaf->setLength(leaf->length() + cplist.size());
+            updateLength(leaf.get(), cplist.size());
+        } else {
+            auto newRope = Rope(leaves);
+            insertSubRope(leaf, pos, std::move(newRope.root_), cplist.size());
+        }
+    } else {
+        Expects(lastVisitedNode != nullptr);
+        
         auto newRope = Rope(leaves);
-        insertSubRope(leaf, pos, std::move(newRope.root_), cplist.size());
+        if (lastVisitedNode->left() == nullptr) {
+            Expects(lastVisitedNode->isRoot());
+            
+            lastVisitedNode->setLength(cplist.size());
+            lastVisitedNode->setHeight(newRope.root_->height() + 1);
+            lastVisitedNode->setLeft(std::move(newRope.root_));
+        } else {
+            Expects(lastVisitedNode->right() == nullptr);
+    
+            auto height = std::max(lastVisitedNode->height(), newRope.root_->height() + 1);
+            lastVisitedNode->setHeight(height);
+            lastVisitedNode->setRight(std::move(newRope.root_));
+            
+            updateLength(lastVisitedNode, cplist.size());
+            updateHeight(lastVisitedNode);
+        }
     }
 }
     
 void Rope::insertSubRope(RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::RopeNode> subRope, size_t len) {
     Expects(leaf->isLeaf());
     
+    auto isLeafLeftChild = leaf->isLeftChild();
+    
+    // insert subRope in front of leaf
     if (pos == 0) {
         auto oldParent = leaf->parent();
         auto newParent = std::make_shared<RopeNode>(subRope->height() + 1, len);
         newParent->setLeft(std::shared_ptr<RopeNode>(std::move(subRope)));
         newParent->setRight(leaf);
         
-        if (oldParent->isLeftChild()) {
+        if (isLeafLeftChild) {
             oldParent->setLeft(newParent);
         } else {
             oldParent->setRight(newParent);
         }
         updateHeight(newParent.get());
         updateLength(newParent.get(), len);
-    } else if (pos == leaf->values().size()) {
+    } else if (pos == leaf->values().size()) {      // insert subRope at back of leaf
         auto oldParent = leaf->parent();
         auto newParent = std::make_shared<RopeNode>(subRope->height() + 1, leaf->length());
         newParent->setLeft(leaf);
         newParent->setRight(std::shared_ptr<RopeNode>(std::move(subRope)));
         
-        if (oldParent->isLeftChild()) {
+        if (isLeafLeftChild) {
+            newParent->setLength(oldParent->length());
             oldParent->setLeft(newParent);
         } else {
+            size_t newLen = lengthOfWholeRope(leaf.get());
+            newParent->setLength(newLen);
             oldParent->setRight(newParent);
         }
         updateHeight(newParent.get());
         updateLength(newParent.get(), len);
-    } else {
+    } else {        // insert subRope in the middle of leaf
         auto oldParent = leaf->parent();
         
         auto splitPoint = leaf->values().begin();
@@ -474,13 +524,13 @@ void Rope::insertSubRope(RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::R
         newParent2->setLeft(newParent);
         newParent2->setRight(oldLeafRight);
         
-        if (oldParent->isLeftChild()) {
+        if (isLeafLeftChild) {
             oldParent->setLeft(newParent2);
         } else {
             oldParent->setRight(newParent2);
         }
-        updateHeight(newParent.get());
-        updateLength(newParent.get(), len);
+        updateHeight(newParent2.get());
+        updateLength(newParent2.get(), len);
     }
     
     if (needBalance()) {
@@ -493,15 +543,19 @@ void Rope::erase(const Range& range) {
     auto remainLeafLen = leaf->values().size() - pos;
     
     if (remainLeafLen >= range.second) {
+        auto newLen = leaf->values().size() - range.second;
         leaf->values().erase(leaf->values().begin() + pos, leaf->values().begin() + pos + range.second);
         if (leaf->values().empty()) {
             removeLeaf(leaf);
+            //leaf->setLength(newLen);
         } else {
+            leaf->setLength(newLen);
             updateLength(leaf.get(), -range.second);
         }
     } else {
-        auto remain = range.second - (leaf->values().size() - pos);
+        auto remain = range.second - remainLeafLen;
         leaf->values().erase(leaf->values().begin() + pos, leaf->values().end());
+        leaf->setLength(pos);
         
         std::vector<RopeNodePtr> emptyLeaves;
         if (leaf->isEmpty()) {
@@ -510,19 +564,23 @@ void Rope::erase(const Range& range) {
         
         while (remain > 0) {
             auto next = nextLeaf(leaf.get());
+            
             if (next == nullptr) {
                 throw std::out_of_range("Rope::erase out of range");
             }
             
             auto len = std::min(remain, next->values().size());
+            auto newLen = next->values().size() - len;
             next->values().erase(next->values().begin(), next->values().begin() + len);
-            remain -= len;
+            next->setLength(newLen);
             
-            leaf = next;
+            remain -= len;
             
             if (next->isEmpty()) {
                 emptyLeaves.push_back(next);
             }
+            
+            leaf = next;
         }
         
         // FIXME: delete empty leaves
@@ -555,6 +613,8 @@ std::string Rope::string() const {
             auto right = s.top()->right();
             s.pop();
             s.push(right.get());
+        } else if (s.top()->isRoot()) {
+            s.pop();
         }
     }
     return str;
@@ -597,7 +657,7 @@ bool Rope::checkHeight() {
 }
     
 bool Rope::checkLength() {
-    // 1. collect whole length of all sub-ropes
+    // 1. collect length of all sub-ropes
     
     std::map<RopeNode*, size_t> lengthList;
     size_t delta = 0;
@@ -629,6 +689,7 @@ bool Rope::checkLength() {
             }
             
             if (length != expect) {
+                std::cout<<"length: "<<length<<" Expect: "<<expect<<std::endl;
                 return false;
             }
         } else {

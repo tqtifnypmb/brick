@@ -54,9 +54,9 @@ public:
     RopeNode* parent() const;
     void setParent(RopeNode* p);
     
-	bool isLeaf() const {
-		return height() == 0;
-	}
+    bool isLeaf() const {
+        return leaf_;
+    }
     
     bool isRoot() const {
         return parent() == nullptr;
@@ -68,6 +68,7 @@ public:
     CodePointList& values();
 	
 private:
+    bool leaf_;
 	std::unique_ptr<NodeImpl> impl_;
 };
 	

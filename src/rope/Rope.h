@@ -28,7 +28,7 @@ public:
     Rope(std::vector<std::unique_ptr<detail::RopeNode>>& cplist);
 	Rope(Rope&& l, Rope&& r);
 	
-	Rope() = default;
+	Rope();
 	Rope(Rope&& r) = default;
 	Rope& operator=(Rope&&) = default;
 	Rope(const Rope&) = delete;
@@ -86,7 +86,10 @@ private:
     
 	bool needBalance();
 	void rebalance();
-    std::tuple<detail::RopeNodePtr /* leaf */, size_t /* pos */> get(gsl::not_null<detail::RopeNode*> root, size_t index);
+    
+    std::tuple<detail::RopeNodePtr /* leaf */, size_t /* pos */>
+    get(gsl::not_null<detail::RopeNode*> root, size_t index, detail::RopeNode** lastVisitedNode = nullptr);
+    
     void insertSubRope(detail::RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::RopeNode> subRope, size_t len);
     
 	std::unique_ptr<detail::RopeNode> root_;
