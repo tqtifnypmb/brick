@@ -9,8 +9,9 @@
 #pragma once
 
 #include <memory>
-#include <array>
 #include <vector>
+
+#include "../types.h"
 
 namespace brick
 {
@@ -20,11 +21,7 @@ namespace detail
 
 struct NodeImpl;
 class RopeNode;
-    
-using CodePoint = std::array<uint8_t, 4>;
-using CodePointList = std::vector<CodePoint>;
-using RopeNodePtr = std::shared_ptr<RopeNode>;
-    
+        
 class RopeNode {
 public:
     

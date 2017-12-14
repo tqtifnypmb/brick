@@ -15,17 +15,15 @@
 
 #include <gsl/gsl>
 #include "RopeNode.h"
+#include "../types.h"
 
 namespace brick
 {
 	
 class Rope {
 public:
-    using Range = std::pair<size_t, size_t>;
-    
     static constexpr size_t max_leaf_length = 1;
     
-    Rope(std::vector<std::unique_ptr<detail::RopeNode>>& cplist);
 	Rope(Rope&& l, Rope&& r);
 	
 	Rope();
@@ -70,6 +68,8 @@ public:
     
 private:
     static const size_t npos = -1;
+    
+    Rope(std::vector<std::unique_ptr<detail::RopeNode>>& cplist);
     
     void insert(const detail::CodePointList& cp, size_t pos);
     

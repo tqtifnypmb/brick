@@ -539,21 +539,21 @@ void Rope::insertSubRope(RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::R
 }
  
 void Rope::erase(const Range& range) {
-    auto [leaf, pos] = get(root_.get(), range.first);
+    auto [leaf, pos] = get(root_.get(), range.location);
     auto remainLeafLen = leaf->values().size() - pos;
     
-    if (remainLeafLen >= range.second) {
-        auto newLen = leaf->values().size() - range.second;
-        leaf->values().erase(leaf->values().begin() + pos, leaf->values().begin() + pos + range.second);
+    if (remainLeafLen >= range.length) {
+        auto newLen = leaf->values().size() - range.length;
+        leaf->values().erase(leaf->values().begin() + pos, leaf->values().begin() + pos + range.length);
         if (leaf->values().empty()) {
             removeLeaf(leaf);
             //leaf->setLength(newLen);
         } else {
             leaf->setLength(newLen);
-            updateLength(leaf.get(), -range.second);
+            updateLength(leaf.get(), -range.length);
         }
     } else {
-        auto remain = range.second - remainLeafLen;
+        auto remain = range.length - remainLeafLen;
         leaf->values().erase(leaf->values().begin() + pos, leaf->values().end());
         leaf->setLength(pos);
         
