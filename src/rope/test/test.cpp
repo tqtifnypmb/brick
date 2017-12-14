@@ -23,7 +23,7 @@ protected:
     
     virtual void SetUp() {
         rope = Rope();
-        rope.insert<ASCIIConverter>(input.c_str(), input.length(), 0);
+        rope.insert<ASCIIConverter>(gsl::span<const char>(input.c_str(), input.length()), 0);
     }
     
     Rope rope;
@@ -87,7 +87,7 @@ TEST_F(AsciiRopeTest, prev_leaf) {
 }
 
 TEST_F(AsciiRopeTest, ascii_insert_back) {
-    rope.insert<ASCIIConverter>(insert.c_str(), insert.length(), input.length());
+    rope.insert<ASCIIConverter>(gsl::span<const char>(insert.c_str(), insert.length()), input.length());
     
     EXPECT_EQ(input + insert, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
@@ -95,7 +95,7 @@ TEST_F(AsciiRopeTest, ascii_insert_back) {
 }
 
 TEST_F(AsciiRopeTest, ascii_insert_front) {
-    rope.insert<ASCIIConverter>(insert.c_str(), insert.length(), 0);
+    rope.insert<ASCIIConverter>(gsl::span<const char>(insert.c_str(), insert.length()), 0);
     
     EXPECT_EQ(insert + input, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
@@ -104,7 +104,7 @@ TEST_F(AsciiRopeTest, ascii_insert_front) {
 
 TEST_F(AsciiRopeTest, ascii_insert_middle) {
     auto insert_point = input.length() / 2;
-    rope.insert<ASCIIConverter>(insert.c_str(), insert.length(), insert_point);
+    rope.insert<ASCIIConverter>(gsl::span<const char>(insert.c_str(), insert.length()), insert_point);
     
     auto result = input.insert(insert_point, insert);
     EXPECT_EQ(result, rope.string());
@@ -113,60 +113,60 @@ TEST_F(AsciiRopeTest, ascii_insert_middle) {
 }
 
 TEST_F(AsciiRopeTest, erase_from_front_single_leaf) {
-    auto toDelete = Rope::Range(0, 1);
+    auto toDelete = Range(0, 1);
     rope.erase(toDelete);
     
-    auto result = input.erase(toDelete.first, toDelete.second);
+    auto result = input.erase(toDelete.location, toDelete.length);
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
 }
   
 TEST_F(AsciiRopeTest, erase_from_back_single_leaf) {
-    auto toDelete = Rope::Range(input.length() - 1, 1);
+    auto toDelete = Range(input.length() - 1, 1);
     rope.erase(toDelete);
     
-    auto result = input.erase(toDelete.first, toDelete.second);
+    auto result = input.erase(toDelete.location, toDelete.length);
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
 }
     
 TEST_F(AsciiRopeTest, erase_from_front_multiple_leaves) {
-    auto toDelete = Rope::Range(0, input.length() / 2);
+    auto toDelete = Range(0, input.length() / 2);
     rope.erase(toDelete);
     
-    auto result = input.erase(toDelete.first, toDelete.second);
+    auto result = input.erase(toDelete.location, toDelete.length);
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
 }
  
 TEST_F(AsciiRopeTest, erase_from_back_multiple_leaves) {
-    auto toDelete = Rope::Range(input.length() / 2, input.length() / 2);
+    auto toDelete = Range(input.length() / 2, input.length() / 2);
     rope.erase(toDelete);
     
-    auto result = input.erase(toDelete.first, toDelete.second);
+    auto result = input.erase(toDelete.location, toDelete.length);
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
 }
  
 TEST_F(AsciiRopeTest, erase_from_middle) {
-    auto toDelete = Rope::Range(input.length() / 4, input.length() / 4);
+    auto toDelete = Range(input.length() / 4, input.length() / 4);
     rope.erase(toDelete);
     
-    auto result = input.erase(toDelete.first, toDelete.second);
+    auto result = input.erase(toDelete.location, toDelete.length);
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
 }
     
 TEST_F(AsciiRopeTest, erase_all) {
-    auto toDelete = Rope::Range(0, input.length());
+    auto toDelete = Range(0, input.length());
     rope.erase(toDelete);
     
-    auto result = input.erase(toDelete.first, toDelete.second);
+    auto result = input.erase(toDelete.location, toDelete.length);
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
@@ -174,7 +174,7 @@ TEST_F(AsciiRopeTest, erase_all) {
     
 TEST_F(AsciiRopeTest, concate) {
     auto rope2 = Rope();
-    rope2.insert<ASCIIConverter>(insert.c_str(), insert.length(), 0);
+    rope2.insert<ASCIIConverter>(gsl::span<const char>(insert.c_str(), insert.length()), 0);
     
     auto concated = Rope(std::move(rope), std::move(rope2));
     

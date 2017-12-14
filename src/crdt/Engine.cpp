@@ -14,13 +14,20 @@ using namespace details;
 namespace brick
 {
 
+Engine::Engine(size_t authorId): authorId_(authorId), revisions_() {}
+    
+void Engine::insert(span<const char> bytes, size_t pos) {
+    auto rev = Revision(authorId_, Revision::Operation::insert, Range(pos, bytes.length()), bytes);
+    revisions_.push_back(rev);
+}
+    
+void Engine::erase(const Range& range) {
+    auto rev = Revision(authorId_, Revision::Operation::erase, range, nullptr);
+    revisions_.push_back(rev);
+}
     
 void Engine::apply(not_null<Rope*> rope) {
     
-}
-    
-void Engine::erase(const Rope::Range &range) {
-        
 }
     
 } // namespace brick

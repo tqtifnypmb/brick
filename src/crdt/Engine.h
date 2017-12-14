@@ -19,10 +19,10 @@ namespace brick
    
 class Engine {
 public:
+    Engine(size_t authorId);
     
-    ///void insert(size_t pos, )
-    void erase(const Rope::Range& range);
-    
+    void insert(gsl::span<const char> bytes, size_t pos);
+    void erase(const Range& range);
     void apply(gsl::not_null<Rope*> rope);
     
 private:

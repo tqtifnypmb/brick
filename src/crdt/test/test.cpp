@@ -6,4 +6,3 @@
 //  Copyright © 2017 tqtifnypmb. All rights reserved.
 //
 
-#include <stdio.h>

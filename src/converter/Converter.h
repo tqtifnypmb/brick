@@ -8,9 +8,10 @@
 
 #pragma once
 
-#include "../rope/RopeNode.h"
+#include "../types.h"
 
 #include <string>
+#include <gsl/gsl>
 
 namespace brick
 {
@@ -18,7 +19,7 @@ namespace brick
 struct ASCIIConverter {
     typedef std::string result_type;
     
-    static detail::CodePointList encode(const char* bytes, size_t len);
+    static detail::CodePointList encode(gsl::span<const char> bytes);
     static result_type decode(const detail::CodePointList& cplist);
 };
     

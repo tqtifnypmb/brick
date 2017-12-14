@@ -23,7 +23,7 @@ public:
         erase,
     };
     
-    Revision(size_t authorId, Operation op, const Range& range, gsl::span<const char*> text);
+    Revision(size_t authorId, Operation op, const Range& range, gsl::span<const char> text);
     Revision() = default;
     Revision(const Revision&) = default;
     
@@ -35,13 +35,13 @@ public:
         return range_;
     }
     
-    gsl::span<const char*> text() const {
+    gsl::span<const char> text() const {
         return text_;
     }
     
 private:
         
-    gsl::span<const char*> text_;
+    gsl::span<const char> text_;
     size_t authorId_;
     Operation op_;
     Range range_;

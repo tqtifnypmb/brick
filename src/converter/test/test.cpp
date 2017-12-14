@@ -14,7 +14,7 @@ using namespace brick;
 
 TEST(converter_ascii, identity) {
     auto input = std::string("abcdefghijklkhgldg");
-    auto cplist = ASCIIConverter::encode(input.c_str(), input.size());
+    auto cplist = ASCIIConverter::encode(gsl::span<const char>(input.c_str(), input.size()));
     auto str = ASCIIConverter::decode(cplist);
     EXPECT_EQ(str, input);
 }

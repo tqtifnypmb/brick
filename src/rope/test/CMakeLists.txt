@@ -4,7 +4,7 @@ set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../")
 
 set(SRC ${ROPE_DIR}/Rope.cpp 
         ${ROPE_DIR}/RopeNode.cpp
-        ${CONV_DIR}//Converter.cpp
+        ${CONV_DIR}/Converter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp)
 
 add_executable (a.out ${SRC})

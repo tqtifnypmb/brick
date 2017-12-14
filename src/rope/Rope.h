@@ -15,6 +15,7 @@
 
 #include <gsl/gsl>
 #include "RopeNode.h"
+#include "Range.h"
 #include "../types.h"
 
 namespace brick
@@ -33,7 +34,7 @@ public:
 	Rope& operator=(const Rope&) = delete;
 	
 	template <class Converter>
-    void insert(const char* bytes, size_t len, size_t pos);
+    void insert(gsl::span<const char> bytes, size_t pos);
     void erase(const Range& range);
     
     std::string string() const;
@@ -96,8 +97,8 @@ private:
 };
 	
 template <class Converter>
-void Rope::insert(const char* bytes, size_t len, size_t pos) {
-    insert(Converter::encode(bytes, len), pos);
+void Rope::insert(gsl::span<const char> bytes, size_t pos) {
+    insert(Converter::encode(bytes), pos);
 }
 
 

@@ -11,7 +11,7 @@
 namespace brick
 {
     
-Revision::Revision(size_t authorId, Operation op, const Range& range, gsl::span<const char*> text)
+Revision::Revision(size_t authorId, Operation op, const Range& range, gsl::span<const char> text)
     : authorId_(authorId)
     , op_(op)
     , range_(range)

@@ -13,11 +13,11 @@ using namespace brick::detail;
 namespace brick
 {
 
-CodePointList ASCIIConverter::encode(const char* bytes, size_t len) {
+CodePointList ASCIIConverter::encode(gsl::span<const char> bytes) {
     CodePointList cplist;
-    cplist.reserve(len);
-    for (size_t i = 0; i < len; ++i) {
-        auto cp = static_cast<uint8_t>(bytes[i]);
+    cplist.reserve(bytes.length());
+    for (auto byte : bytes) {
+        auto cp = static_cast<uint8_t>(byte);
         cplist.push_back(CodePoint {cp});
     }
     return cplist;
