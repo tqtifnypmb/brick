@@ -10,33 +10,39 @@
 
 #include <cstddef>
 #include <stdexcept>
+#include <algorithm>
 
 namespace brick
 {
     
 struct Range {
+    Range() = default;
     Range(size_t loc, size_t len): location(loc), length(len) {}
     
-    bool intersect(const Range& other) {
+    bool operator==(const Range& rhs) {
+        return location == rhs.location && length == rhs.length;
+    }
+    
+    bool intersect(const Range& other) const {
         return (location >= other.location && location < (other.location + other.length)) ||
         (other.location >= location && other.location < (location + length));
     }
     
-    Range intersection(const Range& other) {
-        if (location >= other.location && location < other.maxLocation()) {
-            return Range(location, other.maxLocation() - location);
-        } else if (other.location >= location && other.location < maxLocation()) {
-            return Range(other.location, maxLocation() - other.location);
+    Range intersection(const Range& other) const {
+        if (intersect(other)) {
+            auto loc = std::max(location, other.location);
+            auto len = std::min(maxLocation(), other.maxLocation()) - loc;
+            return Range(loc, len);
         } else {
             return Range(0, 0);
         }
     }
     
-    void offset(size_t len) {
+    void offset(int len) {
         location += len;
     }
     
-    Range offset(size_t len) const {
+    Range offset(int len) const {
         return Range(location + len, length);
     }
     
@@ -44,12 +50,12 @@ struct Range {
         return location + length;
     }
     
-    bool before(const Range& other) {
-        if (intersect(other)) {
-            throw std::invalid_argument("Range::before ");
-        } else {
-            return maxLocation() <= other.location;
-        }
+    bool before(const Range& other)  const {
+        return maxLocation() <= other.location;
+    }
+    
+    bool empty() const {
+        return length == 0;
     }
     
     size_t location;

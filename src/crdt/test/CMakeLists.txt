@@ -1,7 +1,13 @@
 set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../")
 set(CDRT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
+set(SRC_DIR "${CDRT_DIR}/../")
 
 set(SRC ${CDRT_DIR}/Engine.cpp
+        ${CDRT_DIR}/Revision.cpp
+        ${SRC_DIR}/rope/Rope.cpp
+        ${SRC_DIR}/rope/RopeNode.cpp
+        ${SRC_DIR}/rope/Range.cpp
+        ${SRC_DIR}/converter/Converter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp)
 
 add_executable (a.out ${SRC})

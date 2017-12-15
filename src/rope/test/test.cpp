@@ -8,6 +8,7 @@
 
 #include "../Rope.h"
 #include "../RopeNode.h"
+#include "../Range.h"
 #include "../../converter/Converter.h"
 
 #include <gtest/gtest.h>
@@ -197,4 +198,38 @@ TEST_F(AsciiRopeTest, length_of_rope) {
     EXPECT_EQ(input.length(), len);
 }
     
+TEST(Range, basic) {
+    auto a = Range(0, 10);
+    auto b = Range(0, 5);
+    auto c = Range(10, 5);
+    auto d = Range(9, 5);
+    auto i = a.intersection(b);
+    auto k = a.intersection(c);
+    EXPECT_EQ(true, a.intersect(b));
+    EXPECT_EQ(false, a.intersect(c));
+    EXPECT_EQ(false, b.intersect(c));
+    EXPECT_EQ(d.length, b.length);
+  
+    EXPECT_EQ(i.length, 5);
+    EXPECT_EQ(k.length, 0);
+    EXPECT_EQ(true, a.before(c));
+    EXPECT_EQ(false, c.before(a));
+}
+  
+TEST(Range, intersect) {
+    auto a = Range(0, 10);
+    auto b = Range(0, 15);
+    
+    auto i = a.intersection(b);
+    auto j = b.intersection(a);
+    auto k = a.intersection(a);
+    EXPECT_EQ(k.location, a.location);
+    EXPECT_EQ(k.length, a.length);
+    EXPECT_EQ(i.length, 10);
+    EXPECT_EQ(i.length, j.length);
+    EXPECT_EQ(i.location, j.location);
+    EXPECT_EQ(true, a.intersect(b));
+    EXPECT_EQ(true, b.intersect(a));
+}
+
 }

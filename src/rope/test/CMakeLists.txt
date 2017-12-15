@@ -4,6 +4,7 @@ set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../")
 
 set(SRC ${ROPE_DIR}/Rope.cpp 
         ${ROPE_DIR}/RopeNode.cpp
+        ${ROPE_DIR}/Range.cpp
         ${CONV_DIR}/Converter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp)
 

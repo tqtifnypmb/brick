@@ -19,13 +19,19 @@ namespace brick
    
 class Engine {
 public:
+    Engine() = default;
     Engine(size_t authorId);
     
     void insert(gsl::span<const char> bytes, size_t pos);
     void erase(const Range& range);
+    
+    void appendRevision(Revision rev);
     void apply(gsl::not_null<Rope*> rope);
     
+    void sync(size_t revId);
+    
 private:
+    
     std::vector<Revision> revisions_;
     size_t authorId_;
 };
