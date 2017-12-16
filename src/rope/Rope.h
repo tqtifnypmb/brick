@@ -74,16 +74,11 @@ private:
     
     void insert(const detail::CodePointList& cp, size_t pos);
     
-    void travelToRoot(gsl::not_null<detail::RopeNode*> start, std::function<bool(detail::RopeNode&)> func);
     detail::RopeNodePtr nextLeaf(gsl::not_null<detail::RopeNode*> current);
     detail::RopeNodePtr prevLeaf(gsl::not_null<detail::RopeNode*> current);
     void removeLeaf(detail::RopeNodePtr node);
     
     size_t lengthOfWholeRope(gsl::not_null<detail::RopeNode*> root);
-	
-	// meta info maintenance
-    void updateHeight(gsl::not_null<detail::RopeNode*> start);
-    void updateLength(gsl::not_null<detail::RopeNode*> start, int delta);
     
 	bool needBalance();
 	void rebalance();

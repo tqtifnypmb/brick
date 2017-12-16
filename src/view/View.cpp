@@ -7,3 +7,8 @@
 //
 
 #include "View.h"
+
+namespace brick
+{
+    
+}

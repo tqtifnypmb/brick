@@ -29,6 +29,62 @@ namespace
 namespace brick
 {
 
+namespace
+{
+    
+void travelToRoot(not_null<detail::RopeNode*> start, std::function<bool(detail::RopeNode&)> func) {
+    while (start != nullptr) {
+        bool escape = func(*start);
+        if (escape) {
+            break;
+        }
+        
+        if (start->isRoot()) {
+            break;
+        }
+        
+        start = start->parent();
+    }
+}
+    
+void updateHeight(not_null<RopeNode*> start) {
+    if (start->isRoot()) {
+        return;
+    }
+    
+    size_t height = start->height();
+    std::function<bool(RopeNode&)> height_updator = [&height](RopeNode& node) {
+        height += 1;
+        if (height > node.height()) {
+            node.setHeight(height);
+            return false;
+        } else {
+            return true;
+        }
+    };
+    travelToRoot(start->parent(), height_updator);
+}
+    
+void updateLength(not_null<RopeNode*> start, int delta) {
+    if (delta == 0 || start->isRoot()) {
+        return;
+    }
+    
+    auto isLeftChildUpdated = start->isLeftChild();
+    std::function<bool(RopeNode&)> len_updator = [delta, &isLeftChildUpdated](RopeNode& node) {
+        if (isLeftChildUpdated) {
+            node.setLength(node.length() + delta);
+        }
+        isLeftChildUpdated = node.isLeftChild();
+        
+        return false;
+    };
+    
+    travelToRoot(start->parent(), len_updator);
+}
+    
+}   // namespace
+    
 Rope::Rope() {
     root_ = std::make_unique<RopeNode>(0, 0, nullptr, nullptr);
 }
@@ -106,21 +162,6 @@ Rope::Rope(Rope&& l, Rope&& r) {
     
 	size_t height = std::max(l.root_->height(), r.root_->height()) + 1;
     root_ = std::make_unique<RopeNode>(height, length, RopeNodePtr(std::move(l.root_)), RopeNodePtr(std::move(r.root_)));
-}
-    
-void Rope::travelToRoot(not_null<RopeNode*> start, std::function<bool(RopeNode&)> func) {
-    while (start != nullptr) {
-        bool escape = func(*start);
-        if (escape) {
-            break;
-        }
-        
-        if (start->isRoot()) {
-            break;
-        }
-        
-        start = start->parent();
-    }
 }
 	
 RopeNodePtr Rope::nextLeaf(not_null<RopeNode*> current) {
@@ -291,42 +332,6 @@ size_t Rope::lengthOfWholeRope(not_null<RopeNode*> root) {
         right = right->right().get();
     }
     return len;
-}
-    
-void Rope::updateHeight(not_null<RopeNode*> start) {
-    if (start->isRoot()) {
-        return;
-    }
-    
-    size_t height = start->height();
-    std::function<bool(RopeNode&)> height_updator = [&height](RopeNode& node) {
-        height += 1;
-        if (height > node.height()) {
-            node.setHeight(height);
-            return false;
-        } else {
-            return true;
-        }
-    };
-    travelToRoot(start->parent(), height_updator);
-}
-    
-void Rope::updateLength(not_null<RopeNode*> start, int delta) {
-    if (delta == 0 || start->isRoot()) {
-        return;
-    }
-    
-    auto isLeftChildUpdated = start->isLeftChild();
-    std::function<bool(RopeNode&)> len_updator = [delta, &isLeftChildUpdated](RopeNode& node) {
-        if (isLeftChildUpdated) {
-            node.setLength(node.length() + delta);
-        }
-        isLeftChildUpdated = node.isLeftChild();
-        
-        return false;
-    };
-    
-    travelToRoot(start->parent(), len_updator);
 }
   
 bool Rope::needBalance() {
