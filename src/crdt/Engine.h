@@ -10,6 +10,7 @@
 
 #include "../rope/Rope.h"
 #include "Revision.h"
+#include "../types.h"
 
 #include <gsl/gsl>
 #include <vector>
@@ -22,7 +23,10 @@ public:
     Engine() = default;
     Engine(size_t authorId);
     
+    template <class Converter>
     void insert(gsl::span<const char> bytes, size_t pos);
+    void insert(const detail::CodePointList& cplist, size_t pos);
+    
     void erase(const Range& range);
     
     void appendRevision(Revision rev);
@@ -35,5 +39,10 @@ private:
     std::vector<Revision> revisions_;
     size_t authorId_;
 };
+    
+template <class Converter>
+void Engine::insert(gsl::span<const char> bytes, size_t pos) {
+    insert(Converter::encode(bytes), pos);
+}
     
 }   // namespace brick

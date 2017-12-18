@@ -23,17 +23,20 @@ namespace
     }
 }
     
-Revision::Revision(size_t authorId, Operation op, const Range& range, gsl::span<const char> text)
+Revision::Revision(size_t authorId, Operation op, const Range& range)
+    : Revision(authorId, op, range, {}) {}
+    
+Revision::Revision(size_t authorId, Operation op, const Range& range, const detail::CodePointList& cplist)
     : authorId_(authorId)
     , revId_(nextRevId())
     , op_(op)
     , range_(range)
-    , text_(text) {}
+    , cplist_(cplist) {}
   
 void Revision::apply(not_null<Rope*> rope) {
     switch (op_) {
         case Operation::insert:
-            rope->insert<ASCIIConverter>(text_, range_.location);
+            rope->insert(cplist_, range_.location);
             break;
             
         case Operation::erase:

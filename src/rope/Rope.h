@@ -35,6 +35,8 @@ public:
 	
 	template <class Converter>
     void insert(gsl::span<const char> bytes, size_t pos);
+    void insert(const detail::CodePointList& cp, size_t pos);
+    
     void erase(const Range& range);
     
     std::string string() const;
@@ -71,8 +73,6 @@ private:
     static const size_t npos = -1;
     
     Rope(std::vector<std::unique_ptr<detail::RopeNode>>& cplist);
-    
-    void insert(const detail::CodePointList& cp, size_t pos);
     
     detail::RopeNodePtr nextLeaf(gsl::not_null<detail::RopeNode*> current);
     detail::RopeNodePtr prevLeaf(gsl::not_null<detail::RopeNode*> current);

@@ -9,6 +9,7 @@
 #pragma once
 
 #include "../crdt/Engine.h"
+#include "../types.h"
 
 #include <memory>
 #include <gsl/gsl>
@@ -20,16 +21,16 @@ class Rope;
 class View;
 class Editor {
 public:
-    Editor(View* view, gsl::span<const char> text);
+    Editor(View* view, const detail::CodePointList& cplist);
     
     void scroll();
-    void insert();
-    void erase();
+    void insert(const detail::CodePointList& cplist, size_t pos);
+    void erase(Range range);
     void undo();
     
 private:
     View* view_;
-    Engine engine;
+    Engine engine_;
     std::unique_ptr<Rope> rope_;
 };
     

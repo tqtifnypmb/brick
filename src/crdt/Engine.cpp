@@ -11,7 +11,7 @@
 #include <iostream>
 
 using namespace gsl;
-using namespace details;
+using namespace brick::detail;
 
 namespace brick
 {
@@ -61,7 +61,7 @@ Revision delta(Revision& history, Revision& rev) {
                             auto intersect = history.range().intersection(rev.range());
                             auto oldLength = rev.range().length;
                             rev.range().length = intersect.location - rev.range().location;
-                            auto tail = Revision(rev.authorId(), rev.op(), Range(intersect.maxLocation(), oldLength - rev.range().length), nullptr);
+                            auto tail = Revision(rev.authorId(), rev.op(), Range(intersect.maxLocation(), oldLength - rev.range().length));
                             return tail;
                         }
                         break;
@@ -78,7 +78,7 @@ Revision delta(Revision& history, Revision& rev) {
                             auto intersect = history.range().intersection(rev.range());
                             auto oldLength = history.range().length;
                             history.range().length = intersect.location - history.range().location;
-                            auto tail = Revision(history.authorId(), history.op(), Range(intersect.maxLocation(), oldLength - history.range().length), nullptr);
+                            auto tail = Revision(history.authorId(), history.op(), Range(intersect.maxLocation(), oldLength - history.range().length));
                             return tail;
                         }
                         break;
@@ -107,13 +107,13 @@ Revision delta(Revision& history, Revision& rev) {
     
 Engine::Engine(size_t authorId): authorId_(authorId), revisions_() {}
     
-void Engine::insert(span<const char> bytes, size_t pos) {
-    auto rev = Revision(authorId_, Revision::Operation::insert, Range(pos, 1), bytes);
+void Engine::insert(const CodePointList& cplist, size_t pos) {
+    auto rev = Revision(authorId_, Revision::Operation::insert, Range(pos, 1), cplist);
     appendRevision(rev);
 }
     
 void Engine::erase(const Range& range) {
-    auto rev = Revision(authorId_, Revision::Operation::erase, range, nullptr);
+    auto rev = Revision(authorId_, Revision::Operation::erase, range);
     appendRevision(rev);
 }
    

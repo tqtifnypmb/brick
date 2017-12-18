@@ -24,7 +24,8 @@ protected:
     
     virtual void SetUp() {
         rope = Rope();
-        rope.insert<ASCIIConverter>(gsl::span<const char>(input.c_str(), input.length()), 0);
+        auto cplist = ASCIIConverter::encode(gsl::make_span(input.c_str(), input.length()));
+        rope.insert(cplist, 0);
     }
     
     Rope rope;
@@ -88,7 +89,8 @@ TEST_F(AsciiRopeTest, prev_leaf) {
 }
 
 TEST_F(AsciiRopeTest, ascii_insert_back) {
-    rope.insert<ASCIIConverter>(gsl::span<const char>(insert.c_str(), insert.length()), input.length());
+    auto cplist = ASCIIConverter::encode(gsl::make_span(insert.c_str(), insert.length()));
+    rope.insert(cplist, input.length());
     
     EXPECT_EQ(input + insert, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
@@ -96,7 +98,8 @@ TEST_F(AsciiRopeTest, ascii_insert_back) {
 }
 
 TEST_F(AsciiRopeTest, ascii_insert_front) {
-    rope.insert<ASCIIConverter>(gsl::span<const char>(insert.c_str(), insert.length()), 0);
+    auto cplist = ASCIIConverter::encode(gsl::make_span(insert.c_str(), insert.length()));
+    rope.insert(cplist, 0);
     
     EXPECT_EQ(insert + input, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
@@ -104,8 +107,9 @@ TEST_F(AsciiRopeTest, ascii_insert_front) {
 }
 
 TEST_F(AsciiRopeTest, ascii_insert_middle) {
+    auto cplist = ASCIIConverter::encode(gsl::make_span(insert.c_str(), insert.length()));
     auto insert_point = input.length() / 2;
-    rope.insert<ASCIIConverter>(gsl::span<const char>(insert.c_str(), insert.length()), insert_point);
+    rope.insert(cplist, insert_point);
     
     auto result = input.insert(insert_point, insert);
     EXPECT_EQ(result, rope.string());
@@ -174,8 +178,9 @@ TEST_F(AsciiRopeTest, erase_all) {
 }
     
 TEST_F(AsciiRopeTest, concate) {
+    auto cplist = ASCIIConverter::encode(gsl::make_span(insert.c_str(), insert.length()));
     auto rope2 = Rope();
-    rope2.insert<ASCIIConverter>(gsl::span<const char>(insert.c_str(), insert.length()), 0);
+    rope2.insert(cplist, 0);
     
     auto concated = Rope(std::move(rope), std::move(rope2));
     

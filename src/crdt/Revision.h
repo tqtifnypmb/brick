@@ -9,6 +9,7 @@
 #pragma once
 
 #include "../rope/Range.h"
+#include "../types.h"
 
 #include <gsl/gsl>
 #include <vector>
@@ -24,7 +25,8 @@ public:
         erase,
     };
     
-    Revision(size_t authorId, Operation op, const Range& range, gsl::span<const char> text);
+    Revision(size_t authorId, Operation op, const Range& range);
+    Revision(size_t authorId, Operation op, const Range& range, const detail::CodePointList& text);
     Revision(const Revision&) = default;
     Revision() = default;
     
@@ -52,7 +54,7 @@ public:
     
     size_t length() const {
         if (op() == Operation::insert) {
-            return text().length();
+            return cplist().size();
         } else {
             return range().length;
         }
@@ -66,13 +68,13 @@ public:
         return !range_.empty();
     }
     
-    gsl::span<const char> text() const {
-        return text_;
+    const detail::CodePointList& cplist() const {
+        return cplist_;
     }
     
 private:
-        
-    gsl::span<const char> text_;
+    
+    detail::CodePointList cplist_;
     size_t authorId_;
     size_t revId_;
     Operation op_;

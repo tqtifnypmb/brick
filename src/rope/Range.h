@@ -17,6 +17,8 @@ namespace brick
     
 struct Range {
     Range() = default;
+    Range(const Range&) = default;
+    
     Range(size_t loc, size_t len): location(loc), length(len) {}
     
     bool operator==(const Range& rhs) {
