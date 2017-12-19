@@ -24,12 +24,15 @@ Rpc::Rpc(const char* ip, int port) {
     uv_tcp_bind(server_, (const struct sockaddr*)&addr, 0);
 }
   
-void Rpc::onNewConnection(uv_connect_t* req, int status) {
-        
+void Rpc::connectionCb(uv_stream_t* server, int status) {
+    auto self = (Rpc*)server->data;
+    self->onNewConnection();
 }
     
 void Rpc::loop() {
-    //uv_listen(server_, 64, uv_connection_cb cb)
+    server_->data = this;
+    uv_connection_cb cb = Rpc::connectionCb;
+    uv_listen((uv_stream_t*)server_, 64, cb);
 }
     
 Rpc::~Rpc() {

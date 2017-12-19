@@ -24,7 +24,8 @@ public:
     
 private:
     
-    void onNewConnection(uv_connect_t* req, int status);
+    void onNewConnection();
+    static void connectionCb(uv_stream_t* server, int status);
     
     gsl::owner<uv_loop_t*> loop_;
     gsl::owner<uv_tcp_t*> server_;
