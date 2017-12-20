@@ -9,6 +9,7 @@
 #include "Rpc.h"
 
 #include <string>
+#include <iostream>
 
 using namespace gsl;
 
@@ -33,6 +34,7 @@ Rpc::Rpc(const char* ip, int port, std::function<void(RpcPeer*, Request)> msg_cb
     struct sockaddr_in addr;
     uv_ip4_addr(ip, port, &addr);
     
+    server_ = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
     uv_tcp_init(loop_, server_);
     uv_tcp_bind(server_, (const struct sockaddr*)&addr, 0);
 }
@@ -78,7 +80,6 @@ void Rpc::read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     if (buf->base != NULL) {
         free(buf->base);
     }
-    free(buf);
 }
   
 void Rpc::onHandleClosed(uv_handle_t* handle) {
@@ -86,7 +87,7 @@ void Rpc::onHandleClosed(uv_handle_t* handle) {
     
     std::lock_guard<std::mutex> lock(closeMutex_);
     
-    auto ite = std::find(clients_.begin(), clients_.end(), handle);
+    auto ite = std::find(clients_.begin(), clients_.end(), (uv_tcp_t*)handle);
     if (ite != clients_.end()) {
         clients_.erase(ite);
     }
@@ -106,7 +107,6 @@ void Rpc::loop() {
     server_->data = this;
     uv_connection_cb cb = Rpc::connection_cb;
     uv_listen((uv_stream_t*)server_, 64, cb);
-    
     uv_run(loop_, UV_RUN_DEFAULT);
 }
     

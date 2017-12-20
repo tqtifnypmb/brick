@@ -8,8 +8,11 @@
 
 
 #include "../Request.h"
+#include "../Rpc.h"
 #include "../../3party/json.hpp"
 
+#include <memory>
+#include <thread>
 #include <gtest/gtest.h>
 
 using namespace brick;
@@ -35,6 +38,30 @@ TEST(Request, serialize_deserialize) {
     EXPECT_EQ(req3.id(), 1);
     EXPECT_EQ(req3.params()["viewId"].get<size_t>(), 1);
     EXPECT_EQ(req3.method(), Request::MethodType::close_view);
+}
+    
+class RpcTest: public ::testing::Test {
+    protected:
+    
+    virtual void SetUp() {
+        
+        rpc_ = std::make_unique<Rpc>("127.0.0.1", 10086, [](Rpc::RpcPeer* peer, Request req) {
+            
+        });
+        
+        loopThread_ = std::thread([this](){
+            this->rpc_->loop();
+        });
+    }
+    
+    std::thread loopThread_;
+    std::unique_ptr<Rpc> rpc_;
+};
+    
+TEST_F(RpcTest, base) {
+    auto req = Request(0, Request::MethodType::new_view, "");
+    
+    loopThread_.join();
 }
     
 }
