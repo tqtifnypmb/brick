@@ -26,13 +26,22 @@ public:
         
         // text(beginRow, endRow) -> text
         text,
+        
+        // exit()
+        exit,
+        
+        // for response
+        none,
     };
     
     static Request fromJson(const std::string&);
     Request(size_t id, MethodType method, const nlohmann::json& params);
     Request(size_t id, MethodType method);
+    Request(const Request&) = default;
     
-    std::string toJson();
+    Request response(const nlohmann::json& params) const;
+    
+    std::string toJson() const;
     
     MethodType method() const {
         return method_;

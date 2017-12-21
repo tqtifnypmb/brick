@@ -26,7 +26,7 @@ void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
 namespace brick
 {
     
-Rpc::Rpc(const char* ip, int port, std::function<void(RpcPeer*, Request)> msg_cb)
+Rpc::Rpc(const char* ip, int port, const std::function<void(RpcPeer*, Request)>& msg_cb)
     : req_cb_(msg_cb) {
     loop_ = (uv_loop_t*)malloc(sizeof(uv_loop_t));
     uv_loop_init(loop_);
@@ -40,6 +40,7 @@ Rpc::Rpc(const char* ip, int port, std::function<void(RpcPeer*, Request)> msg_cb
 }
   
 void Rpc::onNewConnection(uv_tcp_t* client) {
+    client->data = this;
     clients_.push_back(client);
     
     uv_read_start((uv_stream_t*)client, alloc_cb, Rpc::read_cb);
@@ -54,7 +55,7 @@ void Rpc::connection_cb(uv_stream_t* server, int status) {
     
     uv_tcp_t* client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
     uv_tcp_init(self->loop_, client);
-    auto ret = uv_accept((uv_stream_t*)self->loop_, (uv_stream_t*)client);
+    auto ret = uv_accept(server, (uv_stream_t*)client);
     if (ret == 0) {
         self->onNewConnection(client);
     } else {
@@ -64,7 +65,7 @@ void Rpc::connection_cb(uv_stream_t* server, int status) {
     
 void Rpc::onNewMsg(uv_stream_t* client, std::string msg) {
     auto req = Request::fromJson(msg);
-    this->req_cb_((uv_handle_t*)client, req);
+    req_cb_((uv_handle_t*)client, req);
 }
     
 void Rpc::read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
@@ -73,7 +74,7 @@ void Rpc::read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     if (nread < 0) {
         uv_read_stop(stream);
     } else {
-        auto str = std::string(buf->base, buf->len);
+        auto str = std::string(buf->base, nread);
         self->onNewMsg(stream, str);
     }
     
@@ -99,6 +100,7 @@ void Rpc::onHandleClosed(uv_handle_t* handle) {
 }
     
 void Rpc::close_cb(uv_handle_t* h) {
+    std::cout<<"f"<<std::endl;
     auto self = (Rpc*)h->data;
     self->onHandleClosed(h);
 }
@@ -112,12 +114,13 @@ void Rpc::loop() {
     
 void Rpc::close() {
     closeCount_ = clients_.size() + 1;
-    for (auto client : clients_) {
+    for (auto& client : clients_) {
         uv_close((uv_handle_t*)client, Rpc::close_cb);
     }
-    
+    closeCount_ -= 1;
     uv_close((uv_handle_t*)server_, Rpc::close_cb);
     
+    uv_stop(loop_);
     uv_loop_close(loop_);
     free(loop_);
 }
@@ -136,7 +139,7 @@ void Rpc::write_cb(uv_write_t* req, int status) {
     free(buf);
 }
     
-void Rpc::send(Rpc* peer, const std::string& msg) {
+void Rpc::send(RpcPeer* peer, const std::string& msg) {
     uv_buf_t* buf = (uv_buf_t*)malloc(sizeof(uv_buf_t));
     buf->base = (char*)malloc(sizeof(char) * msg.length());
     strncpy(buf->base, msg.c_str(), msg.length());
@@ -144,11 +147,12 @@ void Rpc::send(Rpc* peer, const std::string& msg) {
     
     uv_write_t* writeReq = (uv_write_t*)malloc(sizeof(uv_write_t));
     writeReq->data = buf;
-    uv_write(writeReq, (uv_stream_t*)peer, buf, 1, Rpc::write_cb);
+    auto ret = uv_write(writeReq, (uv_stream_t*)peer, buf, 1, Rpc::write_cb);
+    Ensures(ret == 0);
 }
     
 Rpc::~Rpc() {
-    closeAndWait();
+    //closeAndWait();
 }
     
 }   // namespace brick

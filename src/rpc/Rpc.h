@@ -25,12 +25,12 @@ class Rpc {
 public:
     using RpcPeer = uv_handle_t;
     
-    Rpc(const char* ip, int port, std::function<void(RpcPeer*, Request)> req_cb);
+    Rpc(const char* ip, int port, const std::function<void(RpcPeer*, Request)>& req_cb);
     Rpc(const Rpc&) = delete;
     Rpc& operator=(const Rpc&) = delete;
     ~Rpc();
     
-    void send(Rpc* peer, const std::string& msg);
+    void send(RpcPeer* peer, const std::string& msg);
     void loop();
     void close();
     void closeAndWait();

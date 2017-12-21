@@ -3,6 +3,8 @@ set(RPC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../")
 
 set(SRC ${RPC_DIR}/Request.cpp
         ${RPC_DIR}/Rpc.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/testClient/TestClient.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/testServer/TestServer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp)
 
 add_executable (a.out ${SRC})

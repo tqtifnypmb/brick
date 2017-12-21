@@ -23,7 +23,7 @@ Request::Request(size_t id, MethodType method, const nlohmann::json& params)
     
 Request::Request(size_t id, MethodType method): Request(id, method, "") {}
     
-std::string Request::toJson() {
+std::string Request::toJson() const {
     json ret;
     ret["jsonrpc"] = "2.0";
     ret["params"] = params_;
@@ -40,6 +40,13 @@ std::string Request::toJson() {
         case MethodType::text:
             ret["method"] = "text";
             break;
+            
+        case MethodType::exit:
+            ret["method"] = "exit";
+            break;
+            
+        case MethodType::none:
+            break;
     }
     return ret.dump();
 }
@@ -49,20 +56,31 @@ Request Request::fromJson(const std::string& jstr) {
     auto version = reqJson["jsonrpc"].get<std::string>();
     Expects(version == "2.0");
     
-    auto method = reqJson["method"].get<std::string>();
-    MethodType mType;
-    if (method == "new_view") {
-        mType = MethodType::new_view;
-    } else if (method == "close_view") {
-        mType = MethodType::close_view;
-    } else if (method == "text") {
-        mType = MethodType::text;
-    } else {
-        throw std::invalid_argument("Unknown rpc method");
-    }
-    
     auto id = reqJson["id"].get<size_t>();
-    return Request(id, mType, reqJson["params"]);
+    
+    if (reqJson["method"].is_null()) {
+        return Request(id, MethodType::none, reqJson["params"]);
+    } else {
+        auto method = reqJson["method"].get<std::string>();
+        MethodType mType;
+        if (method == "new_view") {
+            mType = MethodType::new_view;
+        } else if (method == "close_view") {
+            mType = MethodType::close_view;
+        } else if (method == "text") {
+            mType = MethodType::text;
+        } else if (method == "exit") {
+            mType = MethodType::exit;
+        } else {
+            throw std::invalid_argument("Unknown rpc method");
+        }
+        
+        return Request(id, mType, reqJson["params"]);
+    }
+}
+  
+Request Request::response(const nlohmann::json& params) const {
+    return Request(id(), MethodType::none, params);
 }
     
 }   // namespace brick

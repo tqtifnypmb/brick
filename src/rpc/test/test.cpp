@@ -10,10 +10,14 @@
 #include "../Request.h"
 #include "../Rpc.h"
 #include "../../3party/json.hpp"
+#include "testClient/TestClient.h"
+#include "testServer/testServer.h"
 
 #include <memory>
 #include <thread>
+#include <chrono>
 #include <gtest/gtest.h>
+#include <iostream>
 
 using namespace brick;
 
@@ -45,23 +49,57 @@ class RpcTest: public ::testing::Test {
     
     virtual void SetUp() {
         
-        rpc_ = std::make_unique<Rpc>("127.0.0.1", 10086, [](Rpc::RpcPeer* peer, Request req) {
+        std::function<void(Rpc::RpcPeer*, Request)> onRequest = [this](Rpc::RpcPeer* peer, Request req) {
+            for (auto& server : this->servers_) {
+                if (server->client() == peer) {
+                    server->handleRequest(req);
+                    return;
+                }
+            }
             
-        });
+            TestServer* server = new TestServer(this->rpc_.get(), peer);
+            this->servers_.push_back(server);
+            server->handleRequest(req);
+        };
+        rpc_ = std::make_unique<Rpc>("127.0.0.1", 10086, onRequest);
         
         loopThread_ = std::thread([this](){
             this->rpc_->loop();
         });
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        client_ = std::make_unique<TestClient>("127.0.0.1", 10086);
     }
     
+    virtual void TearDown() {
+        for (auto server : servers_) {
+            delete(server);
+        }
+        rpc_->closeAndWait();
+        loopThread_.join();
+    }
+    
+    std::vector<TestServer*> servers_;
+    std::unique_ptr<TestClient> client_;
     std::thread loopThread_;
     std::unique_ptr<Rpc> rpc_;
 };
+  
+TestServer* serverForClient(const std::vector<TestServer*> servers, TestClient* client) {
+    for (auto& server : servers) {
+        if (server->client() == (Rpc::RpcPeer*)client) {
+            return server;
+        }
+    }
+    return nullptr;
+}
     
 TEST_F(RpcTest, base) {
-    auto req = Request(0, Request::MethodType::new_view, "");
-    
-    loopThread_.join();
+    auto newView = Request(0, Request::MethodType::new_view, "");
+    auto server = serverForClient(servers_, client_.get());
+    auto respStr = client_->send(newView);
+    auto resp = Request::fromJson(respStr);
+    EXPECT_EQ(resp.id(), 0);
+    //EXPECT_NE(resp.params()["viewId"].get<size_t>(), server->viewId() - 1);
 }
     
 }
