@@ -12,6 +12,7 @@
 #include <vector>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 #include <gsl/gsl>
 #include <uv.h>
@@ -24,6 +25,13 @@ namespace brick
 class Rpc {
 public:
     using RpcPeer = uv_handle_t;
+    
+    enum class LoopState: int {
+        looping = 0,
+        closing = 1,
+        closed,
+        stoped
+    };
     
     Rpc(const char* ip, int port, const std::function<void(RpcPeer*, Request)>& req_cb);
     Rpc(const Rpc&) = delete;
@@ -48,7 +56,8 @@ private:
     
     std::mutex closeMutex_;
     std::condition_variable closeCond_;
-    size_t closeCount_;
+    std::atomic<LoopState> state_;
+
     std::function<void(RpcPeer* peer, Request)> req_cb_;
     std::vector<uv_tcp_t*> clients_;
     gsl::owner<uv_loop_t*> loop_;

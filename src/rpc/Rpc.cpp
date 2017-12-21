@@ -27,7 +27,8 @@ namespace brick
 {
     
 Rpc::Rpc(const char* ip, int port, const std::function<void(RpcPeer*, Request)>& msg_cb)
-    : req_cb_(msg_cb) {
+    : req_cb_(msg_cb)
+    , state_(LoopState::stoped) {
     loop_ = (uv_loop_t*)malloc(sizeof(uv_loop_t));
     uv_loop_init(loop_);
     
@@ -48,7 +49,7 @@ void Rpc::onNewConnection(uv_tcp_t* client) {
     
 void Rpc::connection_cb(uv_stream_t* server, int status) {
     if (status < 0) {
-        
+        return;
     }
     
     auto self = (Rpc*)server->data;
@@ -92,67 +93,86 @@ void Rpc::onHandleClosed(uv_handle_t* handle) {
     if (ite != clients_.end()) {
         clients_.erase(ite);
     }
-    
-    --closeCount_;
-    if (closeCount_ == 0) {
-        closeCond_.notify_all();
-    }
 }
     
 void Rpc::close_cb(uv_handle_t* h) {
-    std::cout<<"f"<<std::endl;
     auto self = (Rpc*)h->data;
     self->onHandleClosed(h);
 }
     
 void Rpc::loop() {
+    if (state_ == LoopState::looping) {
+        return;
+    }
+    state_ = LoopState::looping;
+    
     server_->data = this;
     uv_connection_cb cb = Rpc::connection_cb;
     uv_listen((uv_stream_t*)server_, 64, cb);
     uv_run(loop_, UV_RUN_DEFAULT);
+
+    state_ = LoopState::stoped;
+    closeCond_.notify_all();
 }
     
 void Rpc::close() {
-    closeCount_ = clients_.size() + 1;
+    if (state_ == LoopState::closing) {
+        return;
+    }
+    
+    state_ = LoopState::closing;
+    
     for (auto& client : clients_) {
+        uv_read_stop((uv_stream_t*)client);
         uv_close((uv_handle_t*)client, Rpc::close_cb);
     }
-    closeCount_ -= 1;
     uv_close((uv_handle_t*)server_, Rpc::close_cb);
-    
     uv_stop(loop_);
-    uv_loop_close(loop_);
-    free(loop_);
 }
 
 void Rpc::closeAndWait() {
-    close();
+    if (state_ == LoopState::closed ||
+        state_ == LoopState::stoped) {
+        return;
+    }
     
-    auto mutex = std::unique_lock<std::mutex>(closeMutex_);
-    closeCond_.wait(mutex);
+    close();
+
+    if (state_ != LoopState::stoped) {
+        auto mutex = std::unique_lock<std::mutex>(closeMutex_);
+        closeCond_.wait(mutex, [this](){
+            return this->state_ == LoopState::stoped;
+        });
+    }
+    
+    uv_loop_close(loop_);
+    free(loop_);
+    state_ = LoopState::closed;
 }
    
 void Rpc::write_cb(uv_write_t* req, int status) {
     // free write buffer
-    uv_buf_t* buf = (uv_buf_t*)req->data;
-    free(buf->base);
+    char* buf = (char*)req->data;
     free(buf);
+    free(req);
 }
     
 void Rpc::send(RpcPeer* peer, const std::string& msg) {
-    uv_buf_t* buf = (uv_buf_t*)malloc(sizeof(uv_buf_t));
-    buf->base = (char*)malloc(sizeof(char) * msg.length());
-    strncpy(buf->base, msg.c_str(), msg.length());
-    buf->len = msg.length();
+    char* str = (char*)malloc(sizeof(char) * msg.length());
+    strncpy(str, msg.c_str(), msg.length());
+    uv_buf_t buf = uv_buf_init(str, static_cast<unsigned int>(msg.length()));
     
     uv_write_t* writeReq = (uv_write_t*)malloc(sizeof(uv_write_t));
-    writeReq->data = buf;
-    auto ret = uv_write(writeReq, (uv_stream_t*)peer, buf, 1, Rpc::write_cb);
+    writeReq->data = str;
+    auto ret = uv_write(writeReq, (uv_stream_t*)peer, &buf, 1, Rpc::write_cb);
     Ensures(ret == 0);
 }
     
 Rpc::~Rpc() {
-    //closeAndWait();
+    if (state_ != LoopState::closed &&
+        state_ != LoopState::closing) {
+        //closeAndWait();
+    }
 }
     
 }   // namespace brick

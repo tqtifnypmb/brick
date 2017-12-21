@@ -20,6 +20,7 @@ public:
     TestClient(const char* ip, int16_t port);
     ~TestClient();
     std::string send(const Request& req);
+    void sendOnly(const Request& req);
     
 private:
     std::string read();

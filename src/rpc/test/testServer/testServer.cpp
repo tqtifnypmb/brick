@@ -44,7 +44,7 @@ void TestServer::handleRequest(const Request& req) {
         }
             
         case Request::MethodType::exit: {
-            rpc_->closeAndWait();
+            rpc_->close();
             break;
         }
             

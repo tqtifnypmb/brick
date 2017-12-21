@@ -42,6 +42,10 @@ std::string TestClient::send(const Request& req) {
     return read();
 }
     
+void TestClient::sendOnly(const Request& req) {
+    write(req.toJson());
+}
+    
 std::string TestClient::read() {
     char buf[1024];
     ssize_t numRead = ::read(server_, buf, 1024);
