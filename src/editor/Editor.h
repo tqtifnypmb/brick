@@ -28,6 +28,8 @@ public:
     void erase(Range range);
     void undo();
     
+    std::string region(size_t beginRow, size_t endRow);
+    
 private:
     View* view_;
     Engine engine_;

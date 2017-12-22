@@ -24,7 +24,7 @@ public:
         // close_view(viewId)
         close_view,
         
-        // text(beginRow, endRow) -> text
+        // text(viewId, beginRow, endRow) -> region
         text,
         
         // exit()
@@ -49,6 +49,15 @@ public:
     
     size_t id() const {
         return id_;
+    }
+    
+    template <class T>
+    T getParams(const std::string& key) {
+        return params()[key].get<T>();
+    }
+    
+    bool hasParam(const std::string& key) {
+        return params()[key].is_null();
     }
     
     nlohmann::json params() const {

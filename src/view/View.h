@@ -20,6 +20,7 @@ class Editor;
 class View {
 public:
     
+    View(size_t viewId);
     View(size_t viewId, gsl::span<const char> text, Range sel = Range());
     View(size_t viewId, const char* filePath);
     
@@ -29,8 +30,12 @@ public:
     void undo();
     void select(Range sel);
     
-    size_t viewId() {
+    size_t viewId() const {
         return viewId_;
+    }
+    
+    Editor* editor() const {
+        return editor_.get();
     }
     
 private:

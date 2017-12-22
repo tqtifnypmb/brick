@@ -28,4 +28,8 @@ void Editor::insert(const CodePointList &cplist, size_t pos) {
     //engine_.insert(<#gsl::span<const char> bytes#>, <#size_t pos#>)
 }
     
+std::string Editor::region(size_t beginRow, size_t endRow) {
+    return "";
+}
+    
 }

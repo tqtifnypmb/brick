@@ -27,8 +27,7 @@ namespace brick
 {
     
 Rpc::Rpc(const char* ip, int port, const std::function<void(RpcPeer*, Request)>& msg_cb)
-    : req_cb_(msg_cb)
-    , state_(LoopState::stoped) {
+    : req_cb_(msg_cb) {
     loop_ = (uv_loop_t*)malloc(sizeof(uv_loop_t));
     uv_loop_init(loop_);
     
@@ -38,6 +37,8 @@ Rpc::Rpc(const char* ip, int port, const std::function<void(RpcPeer*, Request)>&
     server_ = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
     uv_tcp_init(loop_, server_);
     uv_tcp_bind(server_, (const struct sockaddr*)&addr, 0);
+        
+    state_ = LoopState::ready;
 }
   
 void Rpc::onNewConnection(uv_tcp_t* client) {
@@ -89,8 +90,6 @@ void Rpc::read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
 void Rpc::onHandleClosed(uv_handle_t* handle) {
     free(handle);
     
-    std::lock_guard<std::mutex> lock(closeMutex_);
-    
     auto ite = std::find(clients_.begin(), clients_.end(), (uv_tcp_t*)handle);
     if (ite != clients_.end()) {
         clients_.erase(ite);
@@ -113,13 +112,12 @@ void Rpc::loop() {
     uv_listen((uv_stream_t*)server_, 64, cb);
     uv_run(loop_, UV_RUN_DEFAULT);
 
-    state_ = LoopState::stoped;
-    closeCond_.notify_all();
+    state_ = LoopState::closed;
 }
     
 void Rpc::close() {
     if (state_ == LoopState::closed ||
-        state_ == LoopState::stoped ||
+        state_ == LoopState::ready ||
         state_ == LoopState::closing) {
         return;
     }
@@ -132,26 +130,6 @@ void Rpc::close() {
     }
     uv_close((uv_handle_t*)server_, Rpc::close_cb);
     uv_stop(loop_);
-}
-
-void Rpc::closeAndWait() {
-    if (state_ == LoopState::closed ||
-        state_ == LoopState::stoped) {
-        return;
-    }
-    
-    close();
-
-    if (state_ != LoopState::stoped) {
-        auto mutex = std::unique_lock<std::mutex>(closeMutex_);
-        closeCond_.wait(mutex, [this](){
-            return this->state_ == LoopState::stoped;
-        });
-    }
-    
-    uv_loop_close(loop_);
-    free(loop_);
-    state_ = LoopState::closed;
 }
    
 void Rpc::write_cb(uv_write_t* req, int status) {
@@ -175,8 +153,11 @@ void Rpc::send(RpcPeer* peer, const std::string& msg) {
 Rpc::~Rpc() {
     if (state_ != LoopState::closed &&
         state_ != LoopState::closing) {
-        //closeAndWait();
+        // FIXME: Rpc destructed before being closed;
     }
+    
+    uv_loop_close(loop_);
+    free(loop_);
 }
     
 }   // namespace brick

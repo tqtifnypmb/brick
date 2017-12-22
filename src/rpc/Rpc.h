@@ -10,9 +10,6 @@
 
 #include <memory>
 #include <vector>
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
 
 #include <gsl/gsl>
 #include <uv.h>
@@ -30,7 +27,7 @@ public:
         looping = 0,
         closing = 1,
         closed,
-        stoped
+        ready
     };
     
     Rpc(const char* ip, int port, const std::function<void(RpcPeer*, Request)>& req_cb);
@@ -41,7 +38,6 @@ public:
     void send(RpcPeer* peer, const std::string& msg);
     void loop();
     void close();
-    void closeAndWait();
     
 private:
     
@@ -54,9 +50,7 @@ private:
     static void close_cb(uv_handle_t*);
     static void write_cb(uv_write_t* req, int status);
 
-    std::mutex closeMutex_;
-    std::condition_variable closeCond_;
-    std::atomic<LoopState> state_;
+    LoopState state_;
 
     std::function<void(RpcPeer* peer, Request)> req_cb_;
     std::vector<uv_tcp_t*> clients_;

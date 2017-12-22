@@ -15,6 +15,9 @@ using namespace gsl;
 namespace brick
 {
     
+View::View(size_t viewId)
+    : View(viewId, nullptr) {}
+    
 View::View(size_t viewId, span<const char> text, Range sel)
     : seletion_(sel)
     , viewId_(viewId) {
