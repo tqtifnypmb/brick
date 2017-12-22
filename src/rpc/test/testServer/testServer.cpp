@@ -48,7 +48,7 @@ void TestServer::handleRequest(const Request& req) {
             break;
         }
             
-        case Request::MethodType::none: {
+        case Request::MethodType::response: {
             throw std::invalid_argument("Response sent to server");
             break;
         }

@@ -45,7 +45,7 @@ std::string Request::toJson() const {
             ret["method"] = "exit";
             break;
             
-        case MethodType::none:
+        case MethodType::response:
             break;
     }
     return ret.dump();
@@ -59,7 +59,7 @@ Request Request::fromJson(const std::string& jstr) {
     auto id = reqJson["id"].get<size_t>();
     
     if (reqJson["method"].is_null()) {
-        return Request(id, MethodType::none, reqJson["params"]);
+        return Request(id, MethodType::response, reqJson["params"]);
     } else {
         auto method = reqJson["method"].get<std::string>();
         MethodType mType;
@@ -80,7 +80,7 @@ Request Request::fromJson(const std::string& jstr) {
 }
   
 Request Request::response(const nlohmann::json& params) const {
-    return Request(id(), MethodType::none, params);
+    return Request(id(), MethodType::response, params);
 }
     
 }   // namespace brick

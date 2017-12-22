@@ -30,8 +30,8 @@ public:
         // exit()
         exit,
         
-        // for response
-        none,
+        // for response only
+        response,
     };
     
     static Request fromJson(const std::string&);

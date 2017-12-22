@@ -53,7 +53,7 @@ private:
     static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf);
     static void close_cb(uv_handle_t*);
     static void write_cb(uv_write_t* req, int status);
-    
+
     std::mutex closeMutex_;
     std::condition_variable closeCond_;
     std::atomic<LoopState> state_;

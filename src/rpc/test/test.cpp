@@ -48,18 +48,12 @@ class RpcTest: public ::testing::Test {
     protected:
     
     virtual void SetUp() {
-        
+        server_ = nullptr;
         std::function<void(Rpc::RpcPeer*, Request)> onRequest = [this](Rpc::RpcPeer* peer, Request req) {
-            for (auto& server : this->servers_) {
-                if (server->client() == peer) {
-                    server->handleRequest(req);
-                    return;
-                }
+            if (this->server_ == nullptr) {
+                this->server_ = new TestServer(this->rpc_.get(), peer);
             }
-            
-            auto server = std::make_unique<TestServer>(this->rpc_.get(), peer);
-            this->servers_.push_back(std::move(server));
-            this->servers_.back()->handleRequest(req);
+            this->server_->handleRequest(req);
         };
         rpc_ = std::make_unique<Rpc>("127.0.0.1", 10086, onRequest);
         
@@ -67,7 +61,7 @@ class RpcTest: public ::testing::Test {
             this->rpc_->loop();
         });
                 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         client_ = std::make_unique<TestClient>("127.0.0.1", 10086);
     }
     
@@ -75,21 +69,34 @@ class RpcTest: public ::testing::Test {
         auto exitReq = Request(1, Request::MethodType::exit);
         client_->sendOnly(exitReq);
         loopThread_.join();
+        
+        if (server_ != nullptr) {
+            delete server_;
+        }
     }
     
-    std::vector<std::unique_ptr<TestServer>> servers_;
+    TestServer* server_;
     std::unique_ptr<TestClient> client_;
     std::thread loopThread_;
     std::unique_ptr<Rpc> rpc_;
 };
   
     
-TEST_F(RpcTest, base) {
+TEST_F(RpcTest, new_view) {
     auto newView = Request(0, Request::MethodType::new_view, "");
-
     auto respStr = client_->send(newView);
     auto resp = Request::fromJson(respStr);
     EXPECT_EQ(resp.id(), 0);
+    
+    auto param = nlohmann::json::object();
+    auto viewId = resp.params()["viewId"].get<size_t>();
+    param["viewId"] = viewId;
+    auto closeView = Request(0, Request::MethodType::close_view, param);
+
+    client_->sendOnly(closeView);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    auto iter = std::find(server_->viewIds().begin(), server_->viewIds().end(), viewId);
+    EXPECT_EQ(iter, server_->viewIds().end());
 }
     
 }
