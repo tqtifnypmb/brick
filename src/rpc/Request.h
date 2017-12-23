@@ -30,6 +30,12 @@ public:
         // exit()
         exit,
         
+        // insert(viewId, test, pos)
+        insert,
+        
+        // erase(viewId, range)
+        erase,
+        
         // for response only
         response,
     };

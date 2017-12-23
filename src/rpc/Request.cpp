@@ -16,6 +16,54 @@ using namespace gsl;
 namespace brick
 {
     
+namespace
+{
+    
+Request::MethodType methodTypeFromString(const std::string& method) {
+    if (method == "new_view") {
+        return Request::MethodType::new_view;
+    } else if (method == "close_view") {
+        return Request::MethodType::close_view;
+    } else if (method == "text") {
+        return Request::MethodType::text;
+    } else if (method == "exit") {
+        return Request::MethodType::exit;
+    } else if (method == "insert") {
+        return Request::MethodType::insert;
+    } else if (method == "erase") {
+        return Request::MethodType::erase;
+    }
+    
+    throw std::invalid_argument("Unknown rpc method");
+}
+    
+std::string methodTypeToString(Request::MethodType type) {
+    switch (type) {
+        case Request::MethodType::new_view:
+            return "new_view";
+            
+        case Request::MethodType::close_view:
+            return "close_view";
+            
+        case Request::MethodType::text:
+            return "text";
+            
+        case Request::MethodType::exit:
+            return "exit";
+            
+        case Request::MethodType::insert:
+            return "insert";
+            
+        case Request::MethodType::erase:
+            return "erase";
+            
+        case Request::MethodType::response:
+            return "response";
+    }
+}
+    
+}   // namespace
+    
 Request::Request(size_t id, MethodType method, const nlohmann::json& params)
     : method_(method)
     , params_(params)
@@ -28,25 +76,9 @@ std::string Request::toJson() const {
     ret["jsonrpc"] = "2.0";
     ret["params"] = params_;
     ret["id"] = id_;
-    switch (method()) {
-        case MethodType::new_view:
-            ret["method"] = "new_view";
-            break;
-            
-        case MethodType::close_view:
-            ret["method"] = "close_view";
-            break;
-            
-        case MethodType::text:
-            ret["method"] = "text";
-            break;
-            
-        case MethodType::exit:
-            ret["method"] = "exit";
-            break;
-            
-        case MethodType::response:
-            break;
+    
+    if (method() != MethodType::response) {
+        ret["method"] = methodTypeToString(method());
     }
     return ret.dump();
 }
@@ -57,26 +89,9 @@ Request Request::fromJson(const std::string& jstr) {
     Expects(version == "2.0");
     
     auto id = reqJson["id"].get<size_t>();
-    
-    if (reqJson["method"].is_null()) {
-        return Request(id, MethodType::response, reqJson["params"]);
-    } else {
-        auto method = reqJson["method"].get<std::string>();
-        MethodType mType;
-        if (method == "new_view") {
-            mType = MethodType::new_view;
-        } else if (method == "close_view") {
-            mType = MethodType::close_view;
-        } else if (method == "text") {
-            mType = MethodType::text;
-        } else if (method == "exit") {
-            mType = MethodType::exit;
-        } else {
-            throw std::invalid_argument("Unknown rpc method");
-        }
-        
-        return Request(id, mType, reqJson["params"]);
-    }
+    auto mStr = reqJson["method"].get<std::string>();
+    auto method = methodTypeFromString(mStr);
+    return Request(id, method, reqJson["params"]);
 }
   
 Request Request::response(const nlohmann::json& params) const {
