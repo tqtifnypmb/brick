@@ -18,18 +18,18 @@ namespace brick
 Editor::Editor(View* view, const CodePointList& cplist)
     : view_(view)
     , rope_()
-    , engine(view->viewId()){
+    , engine_(view->viewId()){
     if (!cplist.empty()) {
         rope_->insert(cplist, 0);
     }
 }
    
 void Editor::insert(const CodePointList &cplist, size_t pos) {
-    //engine_.insert(<#gsl::span<const char> bytes#>, <#size_t pos#>)
+    engine_.insert(cplist, pos);
 }
     
 std::string Editor::region(size_t beginRow, size_t endRow) {
-    return "";
+    return rope_->region(beginRow, endRow);
 }
     
 }
