@@ -38,9 +38,9 @@ public:
     void insert(const detail::CodePointList& cp, size_t pos);
     
     void erase(const Range& range);
+    std::string region(size_t beginRow, size_t endRow);
     
     std::string string() const;
-    
     
     detail::RopeNode* root_test() {
         return root_.get();

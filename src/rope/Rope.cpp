@@ -594,6 +594,10 @@ void Rope::erase(const Range& range) {
     }
 }
     
+std::string Rope::region(size_t beginRow, size_t endRow) {
+    return "";
+}
+    
 std::string Rope::string() const {
     std::string str;
     std::stack<RopeNode*> s;

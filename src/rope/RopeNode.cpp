@@ -78,7 +78,7 @@ RopeNode::RopeNode(const std::vector<CodePoint>& cps, RopeNode* parent) {
     leaf_ = true;
 	impl_ = std::unique_ptr<NodeImpl>(impl);
 }
-	
+    
 size_t RopeNode::height() const {
 	return impl_->height;
 }
