@@ -20,28 +20,26 @@ namespace brick
    
 class Engine {
 public:
-    Engine() = default;
-    Engine(size_t authorId);
+    Engine(size_t authorId, gsl::not_null<Rope*> rope);
     
     template <class Converter>
-    void insert(gsl::span<const char> bytes, size_t pos);
-    void insert(const detail::CodePointList& cplist, size_t pos);
+    void insert(gsl::span<const char> bytes, int pos);
+    void insert(const detail::CodePointList& cplist, int pos);
     
     void erase(const Range& range);
     
     void appendRevision(Revision rev);
-    void apply(gsl::not_null<Rope*> rope);
     
     void sync(size_t revId);
     
 private:
-    
+    gsl::not_null<Rope*> rope_;
     std::vector<Revision> revisions_;
     size_t authorId_;
 };
     
 template <class Converter>
-void Engine::insert(gsl::span<const char> bytes, size_t pos) {
+void Engine::insert(gsl::span<const char> bytes, int pos) {
     insert(Converter::encode(bytes), pos);
 }
     

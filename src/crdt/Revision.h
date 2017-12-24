@@ -30,7 +30,7 @@ public:
     Revision(const Revision&) = default;
     Revision() = default;
     
-    void apply(gsl::not_null<Rope*> rope);
+    void apply(gsl::not_null<Rope*> rope) const;
     
     size_t authorId() const {
         return authorId_;
@@ -52,9 +52,9 @@ public:
         return range_;
     }
     
-    size_t length() const {
+    int affectLength() const {
         if (op() == Operation::insert) {
-            return cplist().size();
+            return static_cast<int>(cplist().size());
         } else {
             return range().length;
         }
@@ -66,6 +66,10 @@ public:
     
     bool valid() const {
         return !range_.empty();
+    }
+    
+    void setInvalid() {
+        range_.length = 0;
     }
     
     const detail::CodePointList& cplist() const {

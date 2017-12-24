@@ -9,6 +9,7 @@
 #include "Engine.h"
 
 #include <iostream>
+#include <algorithm>
 
 using namespace gsl;
 using namespace brick::detail;
@@ -19,27 +20,17 @@ namespace brick
 namespace
 {
     
-Revision delta(Revision& history, Revision& rev) {
+Revision delta(const Revision& history, Revision& rev) {
     Expects(!(history.authorId() == rev.authorId() && history.revId() == rev.revId()));
     
-    if (history.range().before(rev.range()) && history.prior(rev)) {
+    if (history.range().before(rev.range())) {
         switch (history.op()) {
             case Revision::Operation::insert:
-                rev.range().offset(history.length());
+                rev.range().offset(history.affectLength());
                 break;
                 
             case Revision::Operation::erase:
-                rev.range().offset(-history.length());
-                break;
-        }
-    } else if (rev.range().before(history.range()) && rev.prior(history)) {
-        switch (rev.op()) {
-            case Revision::Operation::insert:
-                history.range().offset(rev.length());
-                break;
-                
-            case Revision::Operation::erase:
-                history.range().offset(-rev.length());
+                rev.range().offset(-history.affectLength());
                 break;
         }
     } else if (history.range().intersect(rev.range())) {
@@ -47,24 +38,15 @@ Revision delta(Revision& history, Revision& rev) {
             case Revision::Operation::insert: {
                 switch (rev.op()) {
                     case Revision::Operation::insert:
-                        if (history.prior(rev)) {
-                            rev.range().offset(history.length());
-                        } else {
-                            history.range().offset(rev.length());
-                        }
+                        rev.range().offset(history.affectLength());
                         break;
                         
                     case Revision::Operation::erase:
-                        if (rev.prior(history)) {
-                            history.range().location = rev.range().location;
-                        } else {
-                            auto intersect = history.range().intersection(rev.range());
-                            auto oldLength = rev.range().length;
-                            rev.range().length = intersect.location - rev.range().location;
-                            auto tail = Revision(rev.authorId(), rev.op(), Range(intersect.maxLocation(), oldLength - rev.range().length));
-                            return tail;
-                        }
-                        break;
+                        auto intersect = history.range().intersection(rev.range());
+                        auto oldLength = rev.range().length;
+                        rev.range().length = intersect.location - rev.range().location;
+                        auto tail = Revision(rev.authorId(), rev.op(), Range(intersect.maxLocation(), oldLength - rev.range().length));
+                        return tail;
                 }
                 break;
             }
@@ -72,28 +54,25 @@ Revision delta(Revision& history, Revision& rev) {
             case Revision::Operation::erase: {
                 switch (rev.op()) {
                     case Revision::Operation::insert: {
-                        if (history.prior(rev)) {
-                            rev.range().location = history.range().location;
-                        } else {
-                            auto intersect = history.range().intersection(rev.range());
-                            auto oldLength = history.range().length;
-                            history.range().length = intersect.location - history.range().location;
-                            auto tail = Revision(history.authorId(), history.op(), Range(intersect.maxLocation(), oldLength - history.range().length));
-                            return tail;
-                        }
+                        rev.range().location = history.range().location;
                         break;
                     }
                         
                     case Revision::Operation::erase:
-                        auto intersect = history.range().intersection(rev.range());
-                        if (history.range().location <= rev.range().location) {
-                            history.range().length += rev.range().length - intersect.length;
-                            rev.range().length = 0;
+                        if (history.range().contains(rev.range())) {
+                            rev.setInvalid();
                         } else {
-                            history.range().location = rev.range().location;
-                            rev.range().length = 0;
+                            auto intersect = history.range().intersection(rev.range());
+                            auto revMaxLoc = rev.range().maxLocation();
+                            if (history.range().location <= rev.range().location) {
+                                rev.range().location = history.range().location;
+                                rev.range().length = std::max(0, revMaxLoc - intersect.maxLocation());
+                            } else {
+                                rev.range().length = history.range().location - rev.range().location;
+                                auto tail = Revision(rev.authorId(), rev.op(), Range(intersect.maxLocation(), revMaxLoc - intersect.maxLocation()));
+                                return tail;
+                            }
                         }
-                        
                         break;
                 }
                 break;
@@ -105,9 +84,12 @@ Revision delta(Revision& history, Revision& rev) {
     
 }   // namespace
     
-Engine::Engine(size_t authorId): authorId_(authorId), revisions_() {}
+Engine::Engine(size_t authorId, not_null<Rope*> rope)
+    : authorId_(authorId)
+    , rope_(rope)
+    , revisions_() {}
     
-void Engine::insert(const CodePointList& cplist, size_t pos) {
+void Engine::insert(const CodePointList& cplist, int pos) {
     auto rev = Revision(authorId_, Revision::Operation::insert, Range(pos, 1), cplist);
     appendRevision(rev);
 }
@@ -120,6 +102,10 @@ void Engine::erase(const Range& range) {
 void Engine::appendRevision(Revision rev) {
     std::vector<Revision> additionals;
     for (auto& history : revisions_) {
+        if (rev.authorId() == history.authorId()) {
+            continue;
+        }
+        
         auto addi = delta(history, rev);
         if (addi.valid()) {
             additionals.push_back(addi);
@@ -132,18 +118,12 @@ void Engine::appendRevision(Revision rev) {
     
     if (rev.valid()) {
         revisions_.push_back(rev);
+        rev.apply(rope_);
     }
     
-    if (!additionals.empty()) {
-        revisions_.insert(revisions_.end(), additionals.begin(), additionals.end());
-    }
-}
-  
-void Engine::apply(not_null<Rope*> rope) {
-    auto sorted = revisions_;
-    std::sort(sorted.begin(), sorted.end(), [](auto& f, auto& s) { return f.authorId() < s.authorId(); });
-    for (auto& rev : sorted) {
-        rev.apply(rope);
+    for (const auto& additional : additionals) {
+        additional.apply(rope_);
+        revisions_.push_back(additional);
     }
 }
     

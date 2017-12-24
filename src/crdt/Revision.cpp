@@ -33,7 +33,7 @@ Revision::Revision(size_t authorId, Operation op, const Range& range, const deta
     , range_(range)
     , cplist_(cplist) {}
   
-void Revision::apply(not_null<Rope*> rope) {
+void Revision::apply(not_null<Rope*> rope) const {
     switch (op_) {
         case Operation::insert:
             rope->insert(cplist_, range_.location);
