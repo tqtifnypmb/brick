@@ -32,6 +32,10 @@ Request::MethodType methodTypeFromString(const std::string& method) {
         return Request::MethodType::insert;
     } else if (method == "erase") {
         return Request::MethodType::erase;
+    } else if (method == "scroll") {
+        return Request::MethodType::scroll;
+    } else if (method == "select") {
+        return Request::MethodType::select;
     }
     
     throw std::invalid_argument("Unknown rpc method");
@@ -56,6 +60,12 @@ std::string methodTypeToString(Request::MethodType type) {
             
         case Request::MethodType::erase:
             return "erase";
+            
+        case Request::MethodType::scroll:
+            return "scroll";
+            
+        case Request::MethodType::select:
+            return "select";
             
         case Request::MethodType::response:
             return "response";

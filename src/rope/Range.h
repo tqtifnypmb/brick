@@ -19,9 +19,10 @@ struct Range {
     Range() = default;
     Range(const Range&) = default;
     
-    Range(size_t loc, size_t len): location(loc), length(len) {}
+    Range(int loc, int len): location(loc), length(len) {}
+    Range(const Range& r, int offset): Range(r.location + offset, r.length) {}
     
-    bool operator==(const Range& rhs) {
+    bool operator==(const Range& rhs) const {
         return location == rhs.location && length == rhs.length;
     }
     
@@ -40,15 +41,15 @@ struct Range {
         }
     }
     
+    bool contains(const Range& other) const {
+        return location <= other.location && maxLocation() >= other.maxLocation();
+    }
+    
     void offset(int len) {
         location += len;
     }
     
-    Range offset(int len) const {
-        return Range(location + len, length);
-    }
-    
-    size_t maxLocation() const {
+    int maxLocation() const {
         return location + length;
     }
     
@@ -60,8 +61,8 @@ struct Range {
         return length == 0;
     }
     
-    size_t location;
-    size_t length;
+    int location;
+    int length;
 };
     
 }   // namespace brick

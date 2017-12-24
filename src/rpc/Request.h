@@ -24,17 +24,23 @@ public:
         // close_view(viewId)
         close_view,
         
-        // text(viewId, beginRow, endRow) -> region
+        // text(viewId, begRow, endRow) -> region
         text,
         
         // exit()
         exit,
         
-        // insert(viewId, test, pos)
+        // insert(viewId, bytes)
         insert,
         
-        // erase(viewId, range)
+        // erase(viewId)
         erase,
+        
+        // scroll(viewId, range)
+        scroll,
+        
+        // select(viewId, range);
+        select,
         
         // for response only
         response,

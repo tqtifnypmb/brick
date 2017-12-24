@@ -19,32 +19,35 @@ View::View(size_t viewId)
     : View(viewId, nullptr) {}
     
 View::View(size_t viewId, span<const char> text, Range sel)
-    : seletion_(sel)
+    : sel_(sel)
     , viewId_(viewId) {
     editor_ = std::make_unique<Editor>(this, text);
 }
     
 View::View(size_t viewId, const char* filePath)
-    : viewId_(viewId){
+    : viewId_(viewId){}
     
-}
-    
-void View::scroll(Range visibleRange) {
-    visibleRange_ = visibleRange;
+void View::scroll(size_t begRow, size_t endRow) {
+    visibleRange_.first = begRow;
+    visibleRange_.second = endRow;
 }
  
 void View::insert(span<const char> text) {
-    if (seletion_.length > 0) {
-        editor_->erase(seletion_);
-        seletion_.length = 0;
+    if (sel_.length > 0) {
+        editor_->erase(sel_);
+        sel_.length = 0;
     }
     auto cplist = ASCIIConverter::encode(text);
-    editor_->insert(cplist, seletion_.location);
-    seletion_.offset(cplist.size());
+    editor_->insert(cplist, sel_.location);
+    sel_.offset(static_cast<int>(cplist.size()));
 }
     
 void View::erase() {
-    //editor_->erase(range);
+    editor_->erase(sel_);
+}
+  
+std::string View::region(size_t begRow, size_t endRow) {
+    return editor_->region(begRow, endRow);
 }
     
-}
+}   // namespace brick

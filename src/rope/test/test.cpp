@@ -235,6 +235,8 @@ TEST(Range, intersect) {
     EXPECT_EQ(i.location, j.location);
     EXPECT_EQ(true, a.intersect(b));
     EXPECT_EQ(true, b.intersect(a));
+    EXPECT_EQ(false, a.contains(b));
+    EXPECT_EQ(true, b.contains(a));
 }
-
+    
 }

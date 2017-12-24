@@ -27,10 +27,10 @@ private:
     void handleReq(Rpc::RpcPeer* peer, Request req);
     void sendResp(Rpc::RpcPeer* client, Request req);
     View* viewWithId(size_t viewId);
-    Rpc::RpcPeer* clientWithId(size_t viewId);
+    Rpc::RpcPeer* portForView(size_t viewId);
     
     size_t nextViewId_;
-    std::map<size_t, Rpc::RpcPeer*> clientsMap_;
+    std::map<size_t, Rpc::RpcPeer*> peersMap_;
     std::map<size_t, std::unique_ptr<View>> viewsMap_;
     std::unique_ptr<Rpc> rpc_;
 };

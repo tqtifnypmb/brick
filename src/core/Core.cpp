@@ -9,6 +9,7 @@
 #include "Core.h"
 #include "../view/View.h"
 #include "../editor/Editor.h"
+#include "../converter/Converter.h"
 
 #include <gsl/gsl>
 
@@ -41,7 +42,7 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
                 auto view = std::make_unique<View>(viewId, filePath);
                 viewsMap_[viewId] = std::move(view);
             }
-            clientsMap_[viewId] = peer;
+            peersMap_[viewId] = peer;
             break;
         }
             
@@ -49,21 +50,21 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             auto viewId = req.getParams<size_t>("viewId");
             Expects(viewWithId(viewId) != nullptr);
             
-            clientsMap_.erase(viewId);
+            peersMap_.erase(viewId);
             viewsMap_.erase(viewId);
             break;
         }
             
         case Request::MethodType::text: {
             auto viewId = req.getParams<size_t>("viewId");
-            auto beginRow = req.getParams<size_t>("beginRow");
+            auto beginRow = req.getParams<size_t>("begRow");
             auto endRow = req.getParams<size_t>("endRow");
             
-            auto peer = clientWithId(viewId);
+            auto peer = portForView(viewId);
             Expects(peer != nullptr);
             auto view = viewWithId(viewId);
             Expects(view != nullptr);
-            auto text = view->editor()->region(beginRow, endRow);
+            auto text = view->region(beginRow, endRow);
             
             auto params = nlohmann::json::object();
             params["region"] = text;
@@ -75,6 +76,50 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             
         case Request::MethodType::exit: {
             rpc_->close();
+            break;
+        }
+            
+        case Request::MethodType::insert: {
+            auto viewId = req.getParams<size_t>("viewId");
+            auto bytes = req.getParams<std::string>("bytes");
+            
+            auto view = viewWithId(viewId);
+            Expects(view != nullptr);
+            
+            view->insert(bytes);
+            break;
+        }
+            
+        case Request::MethodType::erase: {
+            auto viewId = req.getParams<size_t>("viewId");
+            
+            auto view = viewWithId(viewId);
+            Expects(view != nullptr);
+            
+            view->erase();
+            break;
+        }
+            
+        case Request::MethodType::scroll: {
+            auto viewId = req.getParams<size_t>("viewId");
+            auto beginRow = req.getParams<size_t>("begRow");
+            auto endRow = req.getParams<size_t>("endRow");
+            
+            auto view = viewWithId(viewId);
+            Expects(view != nullptr);
+            
+            view->scroll(beginRow, endRow);
+            break;
+        }
+            
+        case Request::MethodType::select: {
+            auto viewId = req.getParams<size_t>("viewId");
+            auto range = req.getParams<nlohmann::json>("range");
+            
+            auto view = viewWithId(viewId);
+            Expects(view != nullptr);
+            
+            view->select(Range(range[0].get<int>(), range[1].get<int>()));
             break;
         }
             
@@ -98,9 +143,9 @@ View* Core::viewWithId(size_t viewId) {
     }
 }
     
-Rpc::RpcPeer* Core::clientWithId(size_t viewId) {
-    auto iter = clientsMap_.find(viewId);
-    if (iter != clientsMap_.end()) {
+Rpc::RpcPeer* Core::portForView(size_t viewId) {
+    auto iter = peersMap_.find(viewId);
+    if (iter != peersMap_.end()) {
         return iter->second;
     } else {
         return nullptr;

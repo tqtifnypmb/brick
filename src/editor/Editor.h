@@ -24,6 +24,8 @@ public:
     Editor(View* view, const detail::CodePointList& cplist);
     
     void scroll();
+    template <class Converter>
+    void insert(gsl::span<const char> bytes, size_t pos);
     void insert(const detail::CodePointList& cplist, size_t pos);
     void erase(Range range);
     void undo();
@@ -36,4 +38,9 @@ private:
     std::unique_ptr<Rope> rope_;
 };
     
+template <class Converter>
+void insert(gsl::span<const char> bytes, size_t pos) {
+    insert(Converter::encode(bytes), pos);
 }
+    
+}   // namespace brick
