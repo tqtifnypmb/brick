@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "../types.h"
+#include "Range.h"
 
 namespace brick
 {
@@ -27,8 +28,8 @@ public:
     
 	RopeNode(size_t height, size_t length, RopeNodePtr left = nullptr, RopeNodePtr = nullptr, RopeNode* parent = nullptr);
 	RopeNode(const CodePoint& cp, RopeNode* parent = nullptr);
-	RopeNode(const std::vector<CodePoint>& cps, RopeNode* parent = nullptr);
-	RopeNode(const std::vector<CodePoint>&& cps, RopeNode* parent = nullptr);
+	RopeNode(const CodePointList& cps, RopeNode* parent = nullptr);
+	RopeNode(CodePointList&& cps, RopeNode* parent = nullptr);
     
     RopeNode(const RopeNode&) = default;
     RopeNode& operator= (const RopeNode&) = default;
@@ -42,6 +43,9 @@ public:
 	size_t length() const;
     void setLength(size_t len);
 	
+    Range lineRange() const;
+    void setLineRange(Range r);
+    
 	RopeNodePtr left() const;
 	void setLeft(RopeNodePtr left);
 	

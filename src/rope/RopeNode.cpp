@@ -26,6 +26,7 @@ struct NodeImpl {
 };
 	
 struct NodeLeaf: NodeImpl {
+    Range line;
 	CodePointList codes;
 };
 	
@@ -51,7 +52,7 @@ RopeNode::RopeNode(size_t height, size_t length, RopeNodePtr left, RopeNodePtr r
 	impl_ = std::unique_ptr<NodeImpl>(impl);
 }
     
-RopeNode::RopeNode(const std::vector<CodePoint>&& cps, RopeNode* parent) {
+RopeNode::RopeNode(CodePointList&& cps, RopeNode* parent) {
     NodeLeaf* impl = new NodeLeaf();
     impl->height = 0;
     impl->length = cps.size();
@@ -66,7 +67,7 @@ RopeNode::RopeNode(const std::vector<CodePoint>&& cps, RopeNode* parent) {
 	
 RopeNode::RopeNode(const CodePoint& cp, RopeNode* parent): RopeNode(std::vector<CodePoint>(1, cp), parent) {}
 	
-RopeNode::RopeNode(const std::vector<CodePoint>& cps, RopeNode* parent) {
+RopeNode::RopeNode(const CodePointList& cps, RopeNode* parent) {
 	NodeLeaf* impl = new NodeLeaf();
 	impl->height = 0;
 	impl->length = cps.size();
@@ -93,6 +94,24 @@ size_t RopeNode::length() const {
     
 void RopeNode::setLength(size_t len) {
     impl_->length = len;
+}
+    
+Range RopeNode::lineRange() const {
+    if (isLeaf()) {
+        auto leafImpl = static_cast<NodeLeaf*>(impl_.get());
+        return leafImpl->line;
+    } else {
+        throw std::invalid_argument("Undefined method for non-leaf node");
+    }
+}
+    
+void RopeNode::setLineRange(Range r) {
+    if (isLeaf()) {
+        auto leafImpl = static_cast<NodeLeaf*>(impl_.get());
+        leafImpl->line = r;
+    } else {
+        throw std::invalid_argument("Undefined method for non-leaf node");
+    }
 }
 	
 RopeNodePtr RopeNode::left() const {

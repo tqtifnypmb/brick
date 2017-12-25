@@ -64,4 +64,4 @@ RopeIter::reference RopeIter::operator*() {
     return node_->values()[offset_];
 }
     
-}
+}   // namespace brick
