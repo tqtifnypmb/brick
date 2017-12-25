@@ -30,6 +30,8 @@ View::View(size_t viewId, const char* filePath)
 void View::scroll(size_t begRow, size_t endRow) {
     visibleRange_.first = begRow;
     visibleRange_.second = endRow;
+    
+    viewSize_ = std::max(viewSize_, endRow - begRow);
 }
  
 void View::insert(span<const char> text) {

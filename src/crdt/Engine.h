@@ -23,8 +23,8 @@ public:
     Engine(size_t authorId, gsl::not_null<Rope*> rope);
     
     template <class Converter>
-    void insert(gsl::span<const char> bytes, int pos);
-    void insert(const detail::CodePointList& cplist, int pos);
+    void insert(gsl::span<const char> bytes, size_t pos);
+    void insert(const detail::CodePointList& cplist, size_t pos);
     
     void erase(const Range& range);
     

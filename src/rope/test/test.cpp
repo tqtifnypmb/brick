@@ -84,6 +84,7 @@ TEST_F(AsciiRopeTest, iterator_reverse) {
 }
     
 TEST_F(AsciiRopeTest, next_leaf) {
+    
     auto [leftmost, pos] = rope.get_test(rope.root_test(), 0);
     std::string value;
     while (leftmost != nullptr) {

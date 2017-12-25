@@ -89,8 +89,8 @@ Engine::Engine(size_t authorId, not_null<Rope*> rope)
     , rope_(rope)
     , revisions_() {}
     
-void Engine::insert(const CodePointList& cplist, int pos) {
-    auto rev = Revision(authorId_, Revision::Operation::insert, Range(pos, 1), cplist);
+void Engine::insert(const CodePointList& cplist, size_t pos) {
+    auto rev = Revision(authorId_, Revision::Operation::insert, Range(static_cast<int>(pos), 1), cplist);
     appendRevision(rev);
 }
     

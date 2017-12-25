@@ -64,4 +64,26 @@ RopeIter::reference RopeIter::operator*() {
     return node_->values()[offset_];
 }
     
+bool RopeIter::nextLeaf() {
+    auto next = rope_->nextLeaf(node_);
+    if (next != nullptr) {
+        index_ += node_->length();
+        node_ = next.get();
+        offset_ = 0;
+        return true;
+    }
+    return false;
+}
+    
+bool RopeIter::prevLeaf() {
+    auto prev = rope_->prevLeaf(node_);
+    if (prev != nullptr) {
+        index_ -= node_->length();
+        node_ = prev.get();
+        offset_ = node_->length() - 1;
+        return true;
+    }
+    return false;
+}
+    
 }   // namespace brick

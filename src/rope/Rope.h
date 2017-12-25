@@ -39,7 +39,7 @@ public:
     void insert(const detail::CodePointList& cp, size_t pos);
     
     void erase(const Range& range);
-    std::string region(size_t beginRow, size_t endRow);
+    std::string region(const Range& range);
     
     size_t size() const {
         return size_;
@@ -47,6 +47,16 @@ public:
     
     RopeIter begin() const;
     RopeIter end() const;
+    
+    std::reverse_iterator<RopeIter> rbegin() const {
+        return std::reverse_iterator<RopeIter>(end());
+    }
+    
+    std::reverse_iterator<RopeIter> rend() const {
+        return std::reverse_iterator<RopeIter>(begin());
+    }
+    
+    RopeIter iterator(size_t index) const;
     
     std::string string() const;
     

@@ -36,10 +36,15 @@ public:
         return viewId_;
     }
     
+    size_t viewSize() const {
+        return viewSize_;
+    }
+    
 private:
     std::pair<size_t, size_t> visibleRange_;
     Range sel_;
     size_t viewId_;
+    size_t viewSize_;
     std::unique_ptr<Editor> editor_;
 };
     

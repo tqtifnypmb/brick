@@ -49,6 +49,17 @@ public:
         return &(*(*this));
     }
     
+    bool nextLeaf();
+    bool prevLeaf();
+    
+    size_t index() const {
+        return index_;
+    }
+    
+    size_t offset() const {
+        return offset_;
+    }
+    
 private:
     const Rope* rope_;
     detail::RopeNode* node_;

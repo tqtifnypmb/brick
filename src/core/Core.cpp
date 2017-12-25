@@ -59,6 +59,9 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             auto viewId = req.getParams<size_t>("viewId");
             auto beginRow = req.getParams<size_t>("begRow");
             auto endRow = req.getParams<size_t>("endRow");
+            if (endRow <= beginRow) {
+                throw std::invalid_argument("endRow <= begRow");
+            }
             
             auto peer = portForView(viewId);
             Expects(peer != nullptr);

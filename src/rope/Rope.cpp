@@ -598,7 +598,7 @@ void Rope::erase(const Range& range) {
     }
 }
     
-std::string Rope::region(size_t beginRow, size_t endRow) {
+std::string Rope::region(const Range& range) {
     return "";
 }
     
@@ -609,7 +609,12 @@ RopeIter Rope::begin() const {
     
 RopeIter Rope::end() const {
     auto [leaf, pos] = get(root_.get(), size() - 1);
-    return RopeIter(size() - leaf->length(), leaf->length(), leaf.get(), this);
+    return RopeIter(size() - leaf->length(), pos + 1, leaf.get(), this);
+}
+    
+RopeIter Rope::iterator(size_t index) const {
+    auto [leaf, pos] = get(root_.get(), index);
+    return RopeIter(index, pos, leaf.get(), this);
 }
     
 std::string Rope::string() const {
