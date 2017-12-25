@@ -12,6 +12,7 @@
 #include "../../converter/Converter.h"
 
 #include <gtest/gtest.h>
+#include <iterator>
 
 using namespace brick;
 using namespace brick::detail;
@@ -29,7 +30,7 @@ protected:
     }
     
     Rope rope;
-    std::string input {"abcdefhijklmnopqrstuvwxyz"};
+    std::string input {"abcdefghijklmnopqrstuvwxyz"};
     std::string insert {"1235467890"};
 };
     
@@ -47,6 +48,38 @@ TEST_F(AsciiRopeTest, get) {
         
         auto str = ASCIIConverter::decode(leaf->values());
         EXPECT_EQ(std::string(1, str[pos]), std::string(1, input[i]));
+    }
+}
+    
+TEST_F(AsciiRopeTest, iterator) {
+    auto begIter = rope.begin();
+    auto endIter = rope.end();
+    
+    auto dist = std::distance(begIter, endIter);
+    EXPECT_EQ(dist, rope.size());
+    
+    size_t i = 0;
+    while (begIter != endIter) {
+        auto ch = static_cast<char>((*begIter)[0]);
+        EXPECT_EQ(std::string(1, ch), std::string(1, input[i]));
+        ++begIter;
+        ++i;
+    }
+}
+    
+TEST_F(AsciiRopeTest, iterator_reverse) {
+    auto begIter = std::reverse_iterator<RopeIter>(rope.end());
+    auto endIter = std::reverse_iterator<RopeIter>(rope.begin());
+    
+    auto dist = std::distance(begIter, endIter);
+    EXPECT_EQ(dist, rope.size());
+    
+    size_t i = input.length() - 1;
+    while (begIter != endIter) {
+        auto ch = static_cast<char>((*begIter)[0]);
+        EXPECT_EQ(std::string(1, ch), std::string(1, input[i]));
+        ++begIter;
+        --i;
     }
 }
     
@@ -95,6 +128,7 @@ TEST_F(AsciiRopeTest, ascii_insert_back) {
     EXPECT_EQ(input + insert, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
 
 TEST_F(AsciiRopeTest, ascii_insert_front) {
@@ -104,6 +138,7 @@ TEST_F(AsciiRopeTest, ascii_insert_front) {
     EXPECT_EQ(insert + input, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
 
 TEST_F(AsciiRopeTest, ascii_insert_middle) {
@@ -115,6 +150,7 @@ TEST_F(AsciiRopeTest, ascii_insert_middle) {
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
 
 TEST_F(AsciiRopeTest, erase_from_front_single_leaf) {
@@ -125,6 +161,7 @@ TEST_F(AsciiRopeTest, erase_from_front_single_leaf) {
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
   
 TEST_F(AsciiRopeTest, erase_from_back_single_leaf) {
@@ -135,6 +172,7 @@ TEST_F(AsciiRopeTest, erase_from_back_single_leaf) {
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
     
 TEST_F(AsciiRopeTest, erase_from_front_multiple_leaves) {
@@ -145,6 +183,7 @@ TEST_F(AsciiRopeTest, erase_from_front_multiple_leaves) {
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
  
 TEST_F(AsciiRopeTest, erase_from_back_multiple_leaves) {
@@ -155,6 +194,7 @@ TEST_F(AsciiRopeTest, erase_from_back_multiple_leaves) {
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
  
 TEST_F(AsciiRopeTest, erase_from_middle) {
@@ -165,6 +205,7 @@ TEST_F(AsciiRopeTest, erase_from_middle) {
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
     
 TEST_F(AsciiRopeTest, erase_all) {
@@ -175,6 +216,7 @@ TEST_F(AsciiRopeTest, erase_all) {
     EXPECT_EQ(result, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
     
 TEST_F(AsciiRopeTest, concate) {
@@ -188,6 +230,7 @@ TEST_F(AsciiRopeTest, concate) {
     EXPECT_EQ(concated.string(), input + insert);
     EXPECT_EQ(true, concated.checkHeight());
     EXPECT_EQ(true, concated.checkLength());
+    EXPECT_EQ(concated.lengthOfWholeRope_test(concated.root_test()), concated.size());
 }
     
 TEST_F(AsciiRopeTest, rebalance) {
@@ -196,11 +239,19 @@ TEST_F(AsciiRopeTest, rebalance) {
     EXPECT_EQ(input, rope.string());
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
    
 TEST_F(AsciiRopeTest, length_of_rope) {
     auto len = rope.lengthOfWholeRope_test(rope.root_test());
     EXPECT_EQ(input.length(), len);
+}
+    
+TEST_F(AsciiRopeTest, size) {
+    EXPECT_EQ(input.length(), rope.size());
+    
+    rope.rebalance_test();
+    EXPECT_EQ(input.length(), rope.size());
 }
     
 TEST(Range, basic) {

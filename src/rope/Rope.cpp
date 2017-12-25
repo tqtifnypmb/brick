@@ -162,9 +162,10 @@ Rope::Rope(Rope&& l, Rope&& r) {
     
 	size_t height = std::max(l.root_->height(), r.root_->height()) + 1;
     root_ = std::make_unique<RopeNode>(height, length, RopeNodePtr(std::move(l.root_)), RopeNodePtr(std::move(r.root_)));
+    size_ = l.size() + r.size();
 }
 	
-RopeNodePtr Rope::nextLeaf(not_null<RopeNode*> current) {
+RopeNodePtr Rope::nextLeaf(not_null<RopeNode*> current) const {
     Expects(current->isLeaf());
     Expects(!current->isRoot());
     
@@ -199,7 +200,7 @@ RopeNodePtr Rope::nextLeaf(not_null<RopeNode*> current) {
     return leaf;
 }
     
-RopeNodePtr Rope::prevLeaf(not_null<RopeNode*> current) {
+RopeNodePtr Rope::prevLeaf(not_null<RopeNode*> current) const {
     Expects(current->isLeaf());
     
     // 1. find the prev nearest sub-rope
@@ -377,7 +378,7 @@ void Rope::rebalance() {
 }
  
 /// get leaf at index if exist
-std::tuple<RopeNodePtr, size_t> Rope::get(not_null<RopeNode*> root, size_t index, RopeNode** lastVisitedNode) {
+std::tuple<RopeNodePtr, size_t> Rope::get(not_null<RopeNode*> root, size_t index, RopeNode** lastVisitedNode) const {
     RopeNodePtr node = nullptr;
     RopeNode* lastNode = root.get();
     if (index >= root->length()) {
@@ -414,6 +415,7 @@ std::tuple<RopeNodePtr, size_t> Rope::get(not_null<RopeNode*> root, size_t index
 }
     
 void Rope::insert(const detail::CodePointList& cplist, size_t index) {
+    size_ += cplist.size();
     std::vector<std::unique_ptr<RopeNode>> leaves;
     
     // group every RopeNode::max_leaf_length elements
@@ -544,6 +546,8 @@ void Rope::insertSubRope(RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::R
 }
  
 void Rope::erase(const Range& range) {
+    size_ -= range.length;
+    
     auto [leaf, pos] = get(root_.get(), range.location);
     auto remainLeafLen = leaf->values().size() - pos;
     
@@ -596,6 +600,16 @@ void Rope::erase(const Range& range) {
     
 std::string Rope::region(size_t beginRow, size_t endRow) {
     return "";
+}
+    
+RopeIter Rope::begin() const {
+    auto [leaf, pos] = get(root_.get(), 0);
+    return RopeIter(0, 0, leaf.get(), this);
+}
+    
+RopeIter Rope::end() const {
+    auto [leaf, pos] = get(root_.get(), size() - 1);
+    return RopeIter(size() - leaf->length(), leaf->length(), leaf.get(), this);
 }
     
 std::string Rope::string() const {

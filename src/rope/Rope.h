@@ -16,6 +16,7 @@
 #include <gsl/gsl>
 #include "RopeNode.h"
 #include "Range.h"
+#include "RopeIter.h"
 #include "../types.h"
 
 namespace brick
@@ -39,6 +40,13 @@ public:
     
     void erase(const Range& range);
     std::string region(size_t beginRow, size_t endRow);
+    
+    size_t size() const {
+        return size_;
+    }
+    
+    RopeIter begin() const;
+    RopeIter end() const;
     
     std::string string() const;
     
@@ -70,12 +78,14 @@ public:
     bool checkLength();
     
 private:
+    friend class RopeIter;
+    
     static const size_t npos = -1;
     
     Rope(std::vector<std::unique_ptr<detail::RopeNode>>& cplist);
     
-    detail::RopeNodePtr nextLeaf(gsl::not_null<detail::RopeNode*> current);
-    detail::RopeNodePtr prevLeaf(gsl::not_null<detail::RopeNode*> current);
+    detail::RopeNodePtr nextLeaf(gsl::not_null<detail::RopeNode*> current) const;
+    detail::RopeNodePtr prevLeaf(gsl::not_null<detail::RopeNode*> current) const;
     void removeLeaf(detail::RopeNodePtr node);
     
     size_t lengthOfWholeRope(gsl::not_null<detail::RopeNode*> root);
@@ -84,10 +94,11 @@ private:
 	void rebalance();
     
     std::tuple<detail::RopeNodePtr /* leaf */, size_t /* pos */>
-    get(gsl::not_null<detail::RopeNode*> root, size_t index, detail::RopeNode** lastVisitedNode = nullptr);
+    get(gsl::not_null<detail::RopeNode*> root, size_t index, detail::RopeNode** lastVisitedNode = nullptr) const;
     
     void insertSubRope(detail::RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::RopeNode> subRope, size_t len);
     
+    size_t size_ = 0;
 	std::unique_ptr<detail::RopeNode> root_;
 };
 	
