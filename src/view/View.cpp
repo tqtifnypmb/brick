@@ -10,13 +10,17 @@
 #include "../editor/Editor.h"
 #include "../converter/Converter.h"
 
+#include <iostream>
+
 using namespace gsl;
 
 namespace brick
 {
     
 View::View(size_t viewId)
-    : View(viewId, nullptr) {}
+    : viewId_(viewId) {
+    editor_ = std::make_unique<Editor>(this);
+}
     
 View::View(size_t viewId, const detail::CodePointList& cplist, Range sel)
     : sel_(sel)

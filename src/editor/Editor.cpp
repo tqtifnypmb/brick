@@ -10,6 +10,8 @@
 #include "../rope/Rope.h"
 #include "../view/View.h"
 
+#include <iostream>
+
 using namespace brick::detail;
 
 namespace brick
@@ -17,13 +19,16 @@ namespace brick
     
 Editor::Editor(View* view, const CodePointList& cplist)
     : view_(view)
-    , rope_()
+    , rope_(std::make_unique<Rope>())
     , engine_(view->viewId(), rope_.get()) {
     if (!cplist.empty()) {
         rope_->insert(cplist, 0);
     }
 }
    
+Editor::Editor(View* view)
+    : Editor(view, CodePointList()) {}
+    
 void Editor::insert(const CodePointList &cplist, size_t pos) {
     engine_.insert(cplist, pos);
 }
