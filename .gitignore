@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+#CMakeList
+CMakeCache.*
+CMakeFiles
+Makefile*
+*.cmake
+
+*.DS_Store
+
+gtest/*
