@@ -28,22 +28,25 @@ void Editor::insert(const CodePointList &cplist, size_t pos) {
     engine_.insert(cplist, pos);
 }
     
-std::string Editor::region(size_t begRow, size_t endRow) {
+void Editor::erase(Range range) {
+        
+}
+    
+std::map<size_t, CodePointList> Editor::region(size_t begRow, size_t endRow) {
     // 1. try to find the row closest begRow
     auto found = linesIndex_.lower_bound(begRow);
     if (found != linesIndex_.end()) {
-        auto backward = found->first > begRow;
-        return region(found->second, found->first, begRow, endRow, !backward);
+        return region(found->second, found->first, begRow, endRow);
     }
     
     // 2. if not found, the biggest key is the one closest to begRow
     if (!linesIndex_.empty()) {
         auto last = linesIndex_.rbegin();
-        return region(last->second, last->first, begRow, endRow, true);
+        return region(last->second, last->first, begRow, endRow);
     }
     
     // 3. count and cache it
-    return region(0, 0, begRow, endRow, true);
+    return region(0, 0, begRow, endRow);
 }
    
 namespace
@@ -54,16 +57,17 @@ namespace
     }
 }
     
-std::string Editor::region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow, bool forward) {
+std::map<size_t, CodePointList> Editor::region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow ) {
     auto iterator = rope_->iterator(initIndex);
     RopeIter endIter;
     int offset;
+    auto forward = begRow > initRow;
     if (forward) {
         offset = 1;
-        endIter = rope_->begin();
+        endIter = rope_->end();
     } else {
         offset = -1;
-        endIter = rope_->end();
+        endIter = rope_->begin();
     }
     
     auto interval = begRow - initRow;
@@ -81,12 +85,20 @@ std::string Editor::region(size_t initIndex, size_t initRow, size_t begRow, size
     
     auto begIndex = iterator.index() + iterator.offset();
     auto numOfRow = endRow - begRow;
-    while (numOfRow > 0 && iterator != endIter) {
+    size_t currentRow = 0;
+    std::map<size_t, CodePointList> ret;
+    CodePointList line;
+    while (numOfRow > 0 && iterator != rope_->end()) {
         auto cp = *iterator;
         if (isNewLine(cp)) {
+            ret[begRow + currentRow] = line;
             numOfRow -= 1;
+            currentRow += 1;
+            line.erase(line.begin(), line.end());
+        } else {
+            line.push_back(cp);
         }
-        std::advance(iterator, offset);
+        std::advance(iterator, 1);
     }
     
     if (numOfRow != 0) {
@@ -98,8 +110,12 @@ std::string Editor::region(size_t initIndex, size_t initRow, size_t begRow, size
     }
     
     size_t endIndex = iterator.index() + iterator.offset();
-    auto range = Range(static_cast<int>(begIndex), static_cast<int>(endIndex));
-    return rope_->region(range);
+    
+    if (endRow - begRow >= view_->viewSize()) {
+        linesIndex_[endRow] = endIndex;
+    }
+    
+    return ret;
 }
     
 }

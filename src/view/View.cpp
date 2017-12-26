@@ -18,13 +18,13 @@ namespace brick
 View::View(size_t viewId)
     : View(viewId, nullptr) {}
     
-View::View(size_t viewId, span<const char> text, Range sel)
+View::View(size_t viewId, const detail::CodePointList& cplist, Range sel)
     : sel_(sel)
     , viewId_(viewId) {
-    editor_ = std::make_unique<Editor>(this, text);
+    editor_ = std::make_unique<Editor>(this, cplist);
 }
     
-View::View(size_t viewId, const char* filePath)
+View::View(size_t viewId, const std::string& filePath)
     : viewId_(viewId){}
     
 void View::scroll(size_t begRow, size_t endRow) {
@@ -34,12 +34,11 @@ void View::scroll(size_t begRow, size_t endRow) {
     viewSize_ = std::max(viewSize_, endRow - begRow);
 }
  
-void View::insert(span<const char> text) {
+void View::insert(const detail::CodePointList& cplist) {
     if (sel_.length > 0) {
         editor_->erase(sel_);
         sel_.length = 0;
     }
-    auto cplist = ASCIIConverter::encode(text);
     editor_->insert(cplist, sel_.location);
     sel_.offset(static_cast<int>(cplist.size()));
 }
@@ -48,7 +47,11 @@ void View::erase() {
     editor_->erase(sel_);
 }
   
-std::string View::region(size_t begRow, size_t endRow) {
+void View::select(Range sel) {
+        
+}
+    
+std::map<size_t, detail::CodePointList> View::region(size_t begRow, size_t endRow) {
     return editor_->region(begRow, endRow);
 }
     

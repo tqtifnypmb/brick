@@ -39,7 +39,7 @@ private:
 };
     
 template <class Converter>
-void Engine::insert(gsl::span<const char> bytes, int pos) {
+void Engine::insert(gsl::span<const char> bytes, size_t pos) {
     insert(Converter::encode(bytes), pos);
 }
     

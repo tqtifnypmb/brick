@@ -89,7 +89,7 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             auto view = viewWithId(viewId);
             Expects(view != nullptr);
             
-            view->insert(bytes);
+            view->insert<ASCIIConverter>(gsl::make_span(bytes.c_str(), bytes.length()));
             break;
         }
             

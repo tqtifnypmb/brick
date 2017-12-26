@@ -9,28 +9,39 @@
 #pragma once
 
 #include "../rope/Range.h"
+#include "../types.h"
+#include "../editor/Editor.h"
 
 #include <memory>
 #include <utility>
 #include <gsl/gsl>
+#include <map>
+#include <string>
 
 namespace brick
 {
     
-class Editor;
 class View {
 public:
     
     View(size_t viewId);
+    
+    template <class Converter>
     View(size_t viewId, gsl::span<const char> text, Range sel = Range());
-    View(size_t viewId, const char* filePath);
+    
+    View(size_t viewId, const detail::CodePointList& cplist, Range sel = Range());
+    View(size_t viewId, const std::string& filePath);
     
     void scroll(size_t begRow, size_t endRow);
+    
+    template<class Converter>
     void insert(gsl::span<const char> bytes);
+    void insert(const detail::CodePointList& cplist);
+    
     void erase();
     void undo();
     void select(Range sel);
-    std::string region(size_t begRow, size_t endRow);
+    std::map<size_t, detail::CodePointList> region(size_t begRow, size_t endRow);
     
     size_t viewId() const {
         return viewId_;
@@ -47,5 +58,14 @@ private:
     size_t viewSize_;
     std::unique_ptr<Editor> editor_;
 };
+    
+template <class Converter>
+View::View(size_t viewId, gsl::span<const char> text, Range sel)
+    : View(viewId, Converter::encode(text)) {}
+    
+template<class Converter>
+void View::insert(gsl::span<const char> bytes) {
+    insert(Converter::encode(bytes));
+}
     
 }

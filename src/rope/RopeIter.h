@@ -59,7 +59,7 @@ public:
     size_t offset() const {
         return offset_;
     }
-    
+        
 private:
     const Rope* rope_;
     detail::RopeNode* node_;

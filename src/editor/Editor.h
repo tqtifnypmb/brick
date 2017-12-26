@@ -30,10 +30,10 @@ public:
     void erase(Range range);
     void undo();
         
-    std::string region(size_t beginRow, size_t endRow);
+    std::map<size_t, detail::CodePointList> region(size_t beginRow, size_t endRow);
     
 private:
-    std::string region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow, bool forward);
+    std::map<size_t, detail::CodePointList> region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow);
     
     View* view_;
     std::unique_ptr<Rope> rope_;
@@ -42,7 +42,7 @@ private:
 };
     
 template <class Converter>
-void insert(gsl::span<const char> bytes, size_t pos) {
+void Editor::insert(gsl::span<const char> bytes, size_t pos) {
     insert(Converter::encode(bytes), pos);
 }
     

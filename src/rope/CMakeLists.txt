@@ -1,0 +1,15 @@
+set (SRC
+    ${SRC}
+    ${CMAKE_CURRENT_SOURCE_DIR}/Rope.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/RopeIter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/RopeNode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Range.cpp
+    PARENT_SCOPE)
+
+set (HEADER
+    ${HEADER}
+    ${CMAKE_CURRENT_SOURCE_DIR}/Rope.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/RopeIter.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/RopeNode.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Range.h
+    PARENT_SCOPE)

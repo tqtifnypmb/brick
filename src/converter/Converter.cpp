@@ -42,4 +42,4 @@ size_t ASCIIConverter::numOfLine(const detail::CodePointList& cplist) {
     return line;
 }
     
-}
+}   // namespace brick

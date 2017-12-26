@@ -13,11 +13,11 @@
 
 #include "../rpc/Request.h"
 #include "../rpc/Rpc.h"
+#include "../view/View.h"
 
 namespace brick
 {
 
-class View;
 class Core {
 public:
     Core(const char* ip, int port);
