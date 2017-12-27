@@ -39,26 +39,32 @@ TEST_F(EditorTest, region_head) {
     auto ret = editor->region(0, 4);
     EXPECT_EQ(ret.size(), 4);
     
-    auto sstm = std::stringstream(input);
-    std::string line;
-    int i = 0;
-    while (std::getline(sstm, line)) {
-        auto str = ASCIIConverter::decode(ret[i]);
+    for (const auto& r : ret) {
+        auto sstm = std::stringstream(input);
+        std::string line;
+        auto i = 0;
+        do {
+            std::getline(sstm, line);
+            ++i;
+        } while (i <= r.first);
+        auto str = ASCIIConverter::decode(r.second);
         EXPECT_EQ(str, line);
-        ++i;
     }
-    EXPECT_EQ(i, 4);
     
     editor->insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), input.length());
-    ret = editor->region(0, 5);
-    sstm = std::stringstream(input + insert);
-    i = 0;
-    while (std::getline(sstm, line)) {
-        auto str = ASCIIConverter::decode(ret[i]);
+    ret = editor->region(1, 5);
+    EXPECT_EQ(ret.size(), 4);
+    for (const auto& r : ret) {
+        auto sstm = std::stringstream(input + insert);
+        std::string line;
+        auto i = 0;
+        do {
+            std::getline(sstm, line);
+            ++i;
+        } while (i <= r.first);
+        auto str = ASCIIConverter::decode(r.second);
         EXPECT_EQ(str, line);
-        ++i;
     }
-    EXPECT_EQ(i, 5);
 }
 
 TEST_F(EditorTest, region_middle) {

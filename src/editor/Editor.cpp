@@ -30,10 +30,12 @@ Editor::Editor(View* view)
     : Editor(view, CodePointList()) {}
     
 void Editor::insert(const CodePointList &cplist, size_t pos) {
+    // FIXME: cache invalidate
     engine_.insert(cplist, pos);
 }
     
 void Editor::erase(Range range) {
+    // FIXME: cache invalidate
     engine_.erase(range);
 }
     
