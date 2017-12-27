@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <sstream>
+#include <gsl/gsl>
 
 #include "../Editor.h"
 #include "../../view/View.h"
@@ -31,20 +32,65 @@ protected:
     std::unique_ptr<Editor> editor;
     std::unique_ptr<View> view;
     std::string input {"abcdef\nghijklm\nnopqrstuvw\nxyz"};
-    std::string insert {"1235467890"};
+    std::string insert {"1235\n467890"};
 };
 
-TEST_F(EditorTest, region) {
-    auto ret = editor->region(0, 3);
-    EXPECT_EQ(ret.size(), 3);
+TEST_F(EditorTest, region_head) {
+    auto ret = editor->region(0, 4);
+    EXPECT_EQ(ret.size(), 4);
     
     auto sstm = std::stringstream(input);
     std::string line;
     int i = 0;
-    while (std::getline(sstm, line).good()) {
+    while (std::getline(sstm, line)) {
         auto str = ASCIIConverter::decode(ret[i]);
         EXPECT_EQ(str, line);
         ++i;
     }
-    EXPECT_EQ(i, 3);
+    EXPECT_EQ(i, 4);
+    
+    editor->insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), input.length());
+    ret = editor->region(0, 5);
+    sstm = std::stringstream(input + insert);
+    i = 0;
+    while (std::getline(sstm, line)) {
+        auto str = ASCIIConverter::decode(ret[i]);
+        EXPECT_EQ(str, line);
+        ++i;
+    }
+    EXPECT_EQ(i, 5);
+}
+
+TEST_F(EditorTest, region_middle) {
+    auto ret = editor->region(1, 2);
+    EXPECT_EQ(ret.size(), 1);
+    
+    auto sstm = std::stringstream(input);
+    std::string line;
+    std::getline(sstm, line);
+    std::getline(sstm, line);
+    EXPECT_EQ(ASCIIConverter::decode(ret[1]), line);
+}
+
+TEST_F(EditorTest, region_middle_2) {
+    auto ret = editor->region(1, 3);
+    EXPECT_EQ(ret.size(), 2);
+    
+    auto sstm = std::stringstream(input);
+    std::string line;
+    std::getline(sstm, line);
+    std::getline(sstm, line);
+    EXPECT_EQ(ASCIIConverter::decode(ret[1]), line);
+    std::getline(sstm, line);
+    EXPECT_EQ(ASCIIConverter::decode(ret[2]), line);
+}
+
+TEST_F(EditorTest, head_out_of_range) {
+    auto ret = editor->region(10, 20);
+    EXPECT_EQ(ret.empty(), true);
+}
+
+TEST_F(EditorTest, tail_out_of_range) {
+    auto ret = editor->region(0, 10);
+    EXPECT_EQ(ret.size(), 4);
 }

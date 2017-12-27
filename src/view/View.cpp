@@ -52,7 +52,7 @@ void View::erase() {
 }
   
 void View::select(Range sel) {
-        
+    sel_ = sel;
 }
     
 std::map<size_t, detail::CodePointList> View::region(size_t begRow, size_t endRow) {

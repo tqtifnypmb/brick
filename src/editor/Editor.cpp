@@ -34,7 +34,7 @@ void Editor::insert(const CodePointList &cplist, size_t pos) {
 }
     
 void Editor::erase(Range range) {
-        
+    engine_.erase(range);
 }
     
 std::map<size_t, CodePointList> Editor::region(size_t begRow, size_t endRow) {
@@ -63,6 +63,7 @@ namespace
 }
     
 std::map<size_t, CodePointList> Editor::region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow ) {
+    // 1. find begRow
     auto iterator = rope_->iterator(initIndex);
     RopeIter endIter;
     int offset;
@@ -84,12 +85,19 @@ std::map<size_t, CodePointList> Editor::region(size_t initIndex, size_t initRow,
         std::advance(iterator, offset);
     }
     
+    // begRow out of range
     if (interval != 0) {
-        // FIXME: - throw ?
+        return {};
     }
     
+    // found valid index for begRow, cache it if neccessary
     auto begIndex = iterator.index() + iterator.offset();
-    auto numOfRow = endRow - begRow;
+    if (begRow - initRow >= view_->viewSize()) {
+        linesIndex_[begRow] = begIndex;
+    }
+    
+    // 2. find endRow and collect line results
+    auto numOfRow = endRow - begRow;;
     size_t currentRow = 0;
     std::map<size_t, CodePointList> ret;
     CodePointList line;
@@ -106,18 +114,17 @@ std::map<size_t, CodePointList> Editor::region(size_t initIndex, size_t initRow,
         std::advance(iterator, 1);
     }
     
-    if (numOfRow != 0) {
-        // FIXME: - throw ?
+    if (!line.empty()) {
+        ret[begRow + currentRow] = line;
     }
     
-    if (begRow - initRow >= view_->viewSize()) {
-        linesIndex_[begRow] = begIndex;
-    }
-    
-    size_t endIndex = iterator.index() + iterator.offset();
-    
-    if (endRow - begRow >= view_->viewSize()) {
-        linesIndex_[endRow] = endIndex;
+    if (numOfRow == 0) {
+        // found valid index for endRow, cache it if neccessary
+        size_t endIndex = iterator.index() + iterator.offset();
+        
+        if (endRow - begRow >= view_->viewSize()) {
+            linesIndex_[endRow] = endIndex;
+        }
     }
     
     return ret;

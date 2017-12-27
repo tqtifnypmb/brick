@@ -70,7 +70,7 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             auto text = view->region(beginRow, endRow);
             
             auto params = nlohmann::json::object();
-            params["region"] = text;
+            params["region"] = nlohmann::json(text);
             auto resp = req.response(params);
             
             sendResp(peer, resp);
