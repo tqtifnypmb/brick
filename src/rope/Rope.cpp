@@ -597,11 +597,7 @@ void Rope::erase(const Range& range) {
         rebalance();
     }
 }
-    
-std::string Rope::region(const Range& range) {
-    return "";
-}
-    
+        
 RopeIter Rope::begin() const {
     auto [leaf, pos] = get(root_.get(), 0);
     return RopeIter(0, 0, leaf.get(), this);

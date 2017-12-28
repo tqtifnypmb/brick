@@ -39,7 +39,6 @@ public:
     void insert(const detail::CodePointList& cp, size_t pos);
     
     void erase(const Range& range);
-    std::string region(const Range& range);
     
     size_t size() const {
         return size_;
