@@ -79,7 +79,7 @@ Request::Request(size_t id, MethodType method, const nlohmann::json& params)
     , params_(params)
     , id_(id) {}
     
-Request::Request(size_t id, MethodType method): Request(id, method, "") {}
+Request::Request(size_t id, MethodType method): Request(id, method, nlohmann::json()) {}
     
 std::string Request::toJson() const {
     json ret;
@@ -99,8 +99,11 @@ Request Request::fromJson(const std::string& jstr) {
     Expects(version == "2.0");
     
     auto id = reqJson["id"].get<size_t>();
-    auto mStr = reqJson["method"].get<std::string>();
-    auto method = methodTypeFromString(mStr);
+    MethodType method = MethodType::response;
+    if (!reqJson["method"].is_null()) {
+        auto mStr = reqJson["method"].get<std::string>();
+        method = methodTypeFromString(mStr);
+    }
     return Request(id, method, reqJson["params"]);
 }
   

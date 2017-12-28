@@ -41,7 +41,14 @@ public:
     void erase();
     void undo();
     void select(Range sel);
-    std::map<size_t, detail::CodePointList> region(size_t begRow, size_t endRow);
+    
+    template <class Converter>
+    std::map<size_t, std::string> region() {
+        return region<Converter>(visibleRange_.first, visibleRange_.second);
+    }
+    
+    template <class Converter>
+    std::map<size_t, std::string> region(size_t begRow, size_t endRow);
     
     size_t viewId() const {
         return viewId_;
@@ -52,6 +59,11 @@ public:
     }
     
 private:
+    std::map<size_t, detail::CodePointList> regionImpl(size_t begRow, size_t endRow);
+    std::map<size_t, detail::CodePointList> regionImpl() {
+        return regionImpl(visibleRange_.first, visibleRange_.second);
+    }
+    
     std::pair<size_t, size_t> visibleRange_;
     Range sel_;
     size_t viewId_;
@@ -66,6 +78,16 @@ View::View(size_t viewId, gsl::span<const char> text, Range sel)
 template<class Converter>
 void View::insert(gsl::span<const char> bytes) {
     insert(Converter::encode(bytes));
+}
+    
+template <class Converter>
+std::map<size_t, std::string> View::region(size_t begRow, size_t endRow) {
+    auto lines = regionImpl(begRow, endRow);
+    std::map<size_t, std::string> ret;
+    for (const auto& line : lines) {
+        ret[line.first] = Converter::decode(line.second);
+    }
+    return ret;
 }
     
 }

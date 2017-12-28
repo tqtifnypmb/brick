@@ -16,7 +16,7 @@ namespace brick
 {
     
 struct Range {
-    Range() = default;
+    Range(): location(0), length(0) {};
     Range(const Range&) = default;
     
     Range(int loc, int len): location(loc), length(len) {}

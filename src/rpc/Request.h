@@ -24,7 +24,8 @@ public:
         // close_view(viewId)
         close_view,
         
-        // text(viewId, begRow, endRow) -> region
+        // text(viewId, range) -> region: map<rowNum, rowText>
+        // text() -> region: map<rowNum, rowText>
         text,
         
         // exit()
@@ -69,7 +70,7 @@ public:
     }
     
     bool hasParam(const std::string& key) {
-        return params()[key].is_null();
+        return !params()[key].is_null();
     }
     
     nlohmann::json params() const {

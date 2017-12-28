@@ -1,4 +1,5 @@
 set(SRC ${SRC}
+        ${CMAKE_CURRENT_SOURCE_DIR}/client/client.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp)
 
 add_executable (core_test.out ${SRC})

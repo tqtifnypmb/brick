@@ -13,6 +13,8 @@
 
 #include <gsl/gsl>
 
+#include <iostream>
+
 using namespace gsl;
 
 namespace brick
@@ -34,7 +36,7 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             auto resp = req.response(params);
             sendResp(peer, resp);
             
-            if (req.hasParam("filePath")) {
+            if (!req.hasParam("filePath")) {
                 auto view = std::make_unique<View>(viewId);
                 viewsMap_[viewId] = std::move(view);
             } else {
@@ -57,22 +59,38 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             
         case Request::MethodType::text: {
             auto viewId = req.getParams<size_t>("viewId");
-            auto beginRow = req.getParams<size_t>("begRow");
-            auto endRow = req.getParams<size_t>("endRow");
-            if (endRow <= beginRow) {
-                throw std::invalid_argument("endRow <= begRow");
-            }
-            
             auto peer = portForView(viewId);
             Expects(peer != nullptr);
             auto view = viewWithId(viewId);
             Expects(view != nullptr);
-            auto text = view->region(beginRow, endRow);
             
+            decltype(view->region<ASCIIConverter>()) text;
+            if (req.hasParam("range")) {
+                auto range = req.getParams<nlohmann::json>("range");
+                auto beginRow = range[0].get<int>();
+                auto endRow = range[1].get<int>();
+                if (endRow <= beginRow) {
+                    throw std::invalid_argument("endRow <= begRow");
+                }
+                
+                text = view->region<ASCIIConverter>(beginRow, endRow);
+            } else {
+                text = view->region<ASCIIConverter>();
+            }
             auto params = nlohmann::json::object();
-            params["region"] = nlohmann::json(text);
-            auto resp = req.response(params);
+            if (!text.empty()) {
+                for (const auto& line : text) {
+                    auto region = nlohmann::json::object();
+                    region["line"] = line.first;
+                    region["bytes"] = line.second;
+                    
+                    params["region"].push_back(region);
+                }
+            } else {
+                params["region"] = nlohmann::json::array();
+            }
             
+            auto resp = req.response(params);
             sendResp(peer, resp);
             break;
         }
@@ -105,8 +123,9 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             
         case Request::MethodType::scroll: {
             auto viewId = req.getParams<size_t>("viewId");
-            auto beginRow = req.getParams<size_t>("begRow");
-            auto endRow = req.getParams<size_t>("endRow");
+            auto range = req.getParams<nlohmann::json>("range");
+            auto beginRow = range[0].get<int>();
+            auto endRow = range[1].get<int>();
             
             auto view = viewWithId(viewId);
             Expects(view != nullptr);
@@ -118,11 +137,12 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
         case Request::MethodType::select: {
             auto viewId = req.getParams<size_t>("viewId");
             auto range = req.getParams<nlohmann::json>("range");
-            
+            auto pos = range[0].get<int>();
+            auto len = range[1].get<int>();
             auto view = viewWithId(viewId);
             Expects(view != nullptr);
             
-            view->select(Range(range[0].get<int>(), range[1].get<int>()));
+            view->select(Range(pos, len));
             break;
         }
             
@@ -159,6 +179,7 @@ int Core::run() {
     try {
         rpc_->loop();
     } catch (const std::exception& exp) {
+        std::cerr<<exp.what()<<std::endl;
         return -1;
     }
     

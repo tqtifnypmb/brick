@@ -55,7 +55,7 @@ void View::select(Range sel) {
     sel_ = sel;
 }
     
-std::map<size_t, detail::CodePointList> View::region(size_t begRow, size_t endRow) {
+std::map<size_t, detail::CodePointList> View::regionImpl(size_t begRow, size_t endRow) {
     return editor_->region(begRow, endRow);
 }
     
