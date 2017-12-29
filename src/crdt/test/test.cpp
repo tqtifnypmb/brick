@@ -268,6 +268,7 @@ TEST_F(EngineTest, disorder_erase_insert) {
     auto rev2 = Revision(1, 2, Revision::Operation::insert, Range(len, 1), cplist2);
     engine->appendRevision(rev2);
     EXPECT_EQ(rope->string(), input + insert2 + insert);
+    EXPECT_EQ(engine->check_pending_count(), 0);
 }
     
 TEST_F(EngineTest, disorder_erase) {

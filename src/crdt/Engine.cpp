@@ -44,13 +44,7 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
                         auto oldLength = rev.range().length;
                         rev.range().length = std::max(intersect.location - rev.range().location, 0);
                         auto tail = Revision(rev.authorId(), nextRevId(), rev.op(), Range(affectRange.maxLocation(), oldLength - rev.range().length));
-                        if (tail.valid()) {
-                            if (rev.valid()) {  // tail have to apply after rev
-                                tail.range().offset(-rev.range().length);
-                            }
-                            return tail;
-                        }
-                        break;
+                        return tail;
                     }
                 }
                 break;
@@ -75,12 +69,6 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
                             } else {
                                 rev.range().length = history.range().location - rev.range().location;
                                 auto tail = Revision(rev.authorId(), nextRevId(), rev.op(), Range(intersect.maxLocation(), revMaxLoc - intersect.maxLocation()));
-                                if (tail.valid()) {
-                                    if (rev.valid()) {  // tail have to apply after rev
-                                        tail.range().offset(-rev.range().length);
-                                    }
-                                }
-                                
                                 return tail;
                             }
                         }
@@ -111,9 +99,14 @@ std::vector<Revision> Engine::delta(Revision& rev) {
     }
     
     if (rev.valid()) {
-        // rev has to apply first
-        additionals.insert(additionals.begin(), rev);
+        additionals.push_back(rev);
     }
+    
+    auto locDesc = [](const Revision& lhs, const Revision& rhs) {
+        return !lhs.range().before(rhs.range());
+    };
+    std::sort(additionals.begin(), additionals.end(), locDesc);
+    
     return additionals;
 }
     
@@ -157,14 +150,10 @@ bool Engine::appendRevision(Revision rev, bool pendingRev) {
     
     auto iter = pendingRevs_.begin();
     while (iter != pendingRevs_.end()) {
-        if (iter->canApply(rope_)) {
-            auto rev = *iter;
-            bool applied = appendRevision(rev, true);
-            if (applied) {
-                iter = pendingRevs_.erase(iter);
-            } else {
-                ++iter;
-            }
+        auto rev = *iter;
+        bool applied = appendRevision(rev, true);
+        if (applied) {
+            iter = pendingRevs_.erase(iter);
         } else {
             ++iter;
         }

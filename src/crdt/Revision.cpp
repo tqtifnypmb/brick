@@ -45,6 +45,7 @@ bool Revision::canApply(not_null<const Rope*> rope) const {
     } else {
         precondition = range_;
     }
+    
     return validRange.contains(precondition);
 }
     
