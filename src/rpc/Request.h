@@ -43,6 +43,9 @@ public:
         // select(viewId, range);
         select,
         
+        // update
+        update,
+        
         // for response only
         response,
     };

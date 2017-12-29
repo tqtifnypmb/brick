@@ -9,8 +9,8 @@
 #pragma once
 
 #include "../rope/Rope.h"
-#include "Revision.h"
 #include "../types.h"
+#include "Revision.h"
 
 #include <gsl/gsl>
 #include <vector>
@@ -33,9 +33,20 @@ public:
     void sync(size_t revId);
     
 private:
+    Revision delta(const Revision& history, Revision& rev);
+    std::vector<Revision> delta(Revision& rev);
+    
+    bool appendRevision(Revision rev, bool pendingRev);
+    
+    size_t nextRevId() {
+        return revId_++;
+    }
+    
     gsl::not_null<Rope*> rope_;
     std::vector<Revision> revisions_;
+    std::vector<Revision> pendingRevs_;
     size_t authorId_;
+    size_t revId_;
 };
     
 template <class Converter>

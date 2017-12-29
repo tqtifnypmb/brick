@@ -49,6 +49,7 @@ void View::insert(const detail::CodePointList& cplist) {
     
 void View::erase() {
     editor_->erase(sel_);
+    sel_.length = 0;
 }
   
 void View::select(Range sel) {

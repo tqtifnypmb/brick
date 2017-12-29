@@ -25,12 +25,13 @@ public:
         erase,
     };
     
-    Revision(size_t authorId, Operation op, const Range& range);
-    Revision(size_t authorId, Operation op, const Range& range, const detail::CodePointList& text);
+    Revision(size_t authorId, size_t revId, Operation op, const Range& range);
+    Revision(size_t authorId, size_t revId, Operation op, const Range& range, const detail::CodePointList& text);
     Revision(const Revision&) = default;
     Revision() = default;
     
     void apply(gsl::not_null<Rope*> rope) const;
+    bool canApply(gsl::not_null<const Rope*> rope) const;
     
     size_t authorId() const {
         return authorId_;
@@ -65,7 +66,7 @@ public:
     }
     
     bool valid() const {
-        return !range_.empty();
+        return !range_.empty() && range_.location >= 0;
     }
     
     void setInvalid() {

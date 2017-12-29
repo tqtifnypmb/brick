@@ -146,8 +146,13 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             break;
         }
             
+        case Request::MethodType::update: {
+            throw std::invalid_argument("Update request sent to core");
+            break;
+        }
+            
         case Request::MethodType::response: {
-            throw std::invalid_argument("Response sent to server");
+            throw std::invalid_argument("Response sent to core");
             break;
         }
     }

@@ -14,21 +14,13 @@ using namespace gsl;
 
 namespace brick
 {
+        
+Revision::Revision(size_t authorId, size_t revId, Operation op, const Range& range)
+    : Revision(authorId, revId, op, range, {}) {}
     
-namespace
-{
-    size_t nextRevId() {
-        static size_t revId = 0;
-        return revId++;
-    }
-}
-    
-Revision::Revision(size_t authorId, Operation op, const Range& range)
-    : Revision(authorId, op, range, {}) {}
-    
-Revision::Revision(size_t authorId, Operation op, const Range& range, const detail::CodePointList& cplist)
+Revision::Revision(size_t authorId, size_t revId, Operation op, const Range& range, const detail::CodePointList& cplist)
     : authorId_(authorId)
-    , revId_(nextRevId())
+    , revId_(revId)
     , op_(op)
     , range_(range)
     , cplist_(cplist) {}
@@ -43,6 +35,17 @@ void Revision::apply(not_null<Rope*> rope) const {
             rope->erase(range_);
             break;
     }
+}
+    
+bool Revision::canApply(not_null<const Rope*> rope) const {
+    auto validRange = Range(0, static_cast<int>(rope->size()));
+    Range precondition;
+    if (op_ == Revision::Operation::insert) {
+        precondition = Range(range_.location, 0);
+    } else {
+        precondition = range_;
+    }
+    return validRange.contains(precondition);
 }
     
 }   // namespace brick
