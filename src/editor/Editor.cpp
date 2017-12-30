@@ -39,6 +39,13 @@ void Editor::erase(Range range) {
     engine_.erase(range);
 }
     
+void Editor::undo() {
+}
+
+void Editor::merge(const Editor& editor) {
+        
+}
+    
 std::map<size_t, CodePointList> Editor::region(size_t begRow, size_t endRow) {
     // 1. try to find the row closest begRow
     auto found = linesIndex_.lower_bound(begRow);

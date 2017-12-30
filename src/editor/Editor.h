@@ -30,7 +30,9 @@ public:
     void insert(const detail::CodePointList& cplist, size_t pos);
     void erase(Range range);
     void undo();
-        
+    
+    void merge(const Editor& editor);
+    
     std::map<size_t, detail::CodePointList> region(size_t beginRow, size_t endRow);
     
 private:
