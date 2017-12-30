@@ -126,13 +126,13 @@ void Engine::erase(const Range& range) {
 }
    
 bool Engine::appendRevision(Revision rev, bool pendingRev) {
-    auto cache = rev;
+    auto origin = rev;
     auto deltas = delta(rev);
     
     for (const auto& delta : deltas) {
         if (!delta.canApply(rope_)) {
             if (!pendingRev) {
-                pendingRevs_.push_back(cache);
+                pendingRevs_.push_back(origin);
             }
             return false;
         }

@@ -31,11 +31,7 @@ public:
     void appendRevision(Revision rev);
     
     void sync(size_t revId);
-    
-    int check_pending_count() {
-        return pendingRevs_.size();
-    }
-    
+        
 private:
     Revision delta(const Revision& history, Revision& rev);
     std::vector<Revision> delta(Revision& rev);
