@@ -30,20 +30,25 @@ Editor::Editor(View* view)
     : Editor(view, CodePointList()) {}
     
 void Editor::insert(const CodePointList &cplist, size_t pos) {
-    // FIXME: cache invalidate
+    // FIXME: line cache invalidate
     engine_.insert(cplist, pos);
 }
     
 void Editor::erase(Range range) {
-    // FIXME: cache invalidate
+    // FIXME: line cache invalidate
     engine_.erase(range);
 }
     
 void Editor::undo() {
 }
 
-void Editor::merge(const Editor& editor) {
-        
+void Editor::merge(const Editor& other) {
+    if (rope_->empty() && engine_.revisions().empty()) {
+        auto rope = Rope(*other.rope_);
+        rope_->swap(rope);
+    } else {
+        engine_.sync(other.engine_);
+    }
 }
     
 std::map<size_t, CodePointList> Editor::region(size_t begRow, size_t endRow) {

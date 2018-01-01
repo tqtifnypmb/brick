@@ -166,11 +166,24 @@ void Engine::appendRevision(Revision rev) {
     appendRevision(rev, false);
 }
     
-void Engine::sync(size_t revId) {
-    auto pos = std::find_if(revisions_.begin(), revisions_.end(), [revId](auto& rev) { return revId == rev.revId(); });
-    if (pos != revisions_.end()) {
-        std::advance(pos, 1);
-        revisions_.erase(revisions_.begin(), pos);
+void Engine::sync(const Engine& other) {
+    if (revisions_.empty()) {
+        return;
+    }
+    
+    auto selfLast = revisions_.back();
+    auto otherLast = other.revisions_.back();
+    
+    if (selfLast.authorId() == otherLast.authorId() &&
+        selfLast.revId() == otherLast.revId()) {
+        return;
+    }
+    
+    // FIXME: mini update view
+    for (const auto& rev : other.revisions_) {
+        if (rev.authorId() == authorId_) continue;
+        
+        appendRevision(rev);
     }
 }
     

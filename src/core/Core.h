@@ -13,6 +13,7 @@
 
 #include "../rpc/Request.h"
 #include "../rpc/Rpc.h"
+#include "../rope/Range.h"
 #include "../view/View.h"
 
 namespace brick
@@ -26,9 +27,13 @@ public:
 private:
     void handleReq(Rpc::RpcPeer* peer, Request req);
     void sendResp(Rpc::RpcPeer* client, Request req);
+    void updateView(size_t viewId, Range range);
+    
     View* viewWithId(size_t viewId);
+    View* viewWithFilePath(const std::string& filePath);
     Rpc::RpcPeer* portForView(size_t viewId);
     
+    size_t nextReqId_;
     size_t nextViewId_;
     std::map<size_t, Rpc::RpcPeer*> peersMap_;
     std::map<size_t, std::unique_ptr<View>> viewsMap_;

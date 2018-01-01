@@ -89,7 +89,20 @@ Rope::Rope() {
     root_ = std::make_unique<RopeNode>(0, 0, nullptr, nullptr);
 }
     
+Rope::Rope(const Rope& other) {
+    auto leaves = other.cloneLeaves();
+    if (!leaves.empty()) {
+        auto rope = Rope(leaves);
+        root_ = std::move(rope.root_);
+    } else {
+        auto rope = Rope();
+        root_ = std::move(rope.root_);
+    }
+}
+    
 Rope::Rope(std::vector<std::unique_ptr<RopeNode>>& leaves) {
+    Expects(!leaves.empty());
+    
     std::map<RopeNode*, size_t> lenCache;
     
     size_t curLevelElems = leaves.size();
@@ -340,8 +353,8 @@ bool Rope::needBalance() {
     auto diff = static_cast<int>(root_->left()->height() - root_->right()->height());
     return std::abs(diff) >= rebalance_threshold;
 }
-    
-void Rope::rebalance() {
+
+std::vector<std::unique_ptr<RopeNode>> Rope::cloneLeaves() const {
     std::vector<std::unique_ptr<RopeNode>> leaves;
     std::stack<RopeNode*> s;
     s.push(root_.get());
@@ -367,6 +380,11 @@ void Rope::rebalance() {
             s.push(right.get());
         }
     }
+    return leaves;
+}
+    
+void Rope::rebalance() {
+    auto leaves = cloneLeaves();
     
     if (!leaves.empty()) {
         auto newRope = Rope(leaves);

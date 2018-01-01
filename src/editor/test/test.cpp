@@ -24,9 +24,14 @@ class EditorTest: public ::testing::Test {
 protected:
     
     virtual void SetUp() {
-        view = std::make_unique<View>(0);
+        auto updateCb = std::bind(&EditorTest::updateView, this, std::placeholders::_1, std::placeholders::_2);
+        view = std::make_unique<View>(0, updateCb);
         auto cplist = ASCIIConverter::encode(gsl::make_span(input.c_str(), input.length()));
         editor = std::make_unique<Editor>(view.get(), cplist);
+    }
+    
+    void updateView(size_t viewId, Range range) {
+        
     }
     
     std::unique_ptr<Editor> editor;

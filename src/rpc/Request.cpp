@@ -38,6 +38,8 @@ Request::MethodType methodTypeFromString(const std::string& method) {
         return Request::MethodType::select;
     } else if (method == "update") {
         return Request::MethodType::update;
+    } else if (method == "save") {
+        return Request::MethodType::save;
     }
     
     throw std::invalid_argument("Unknown rpc method");
@@ -71,6 +73,9 @@ std::string methodTypeToString(Request::MethodType type) {
             
         case Request::MethodType::update:
             return "update";
+            
+        case Request::MethodType::save:
+            return "save";
             
         case Request::MethodType::response:
             return "response";

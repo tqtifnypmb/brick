@@ -21,7 +21,8 @@ namespace brick
 {
 
 Core::Core(const char* ip, int port)
-    : nextViewId_(0) {
+    : nextViewId_(0)
+    , nextReqId_(0) {
     rpc_ = std::make_unique<Rpc>(ip, port, std::bind(&Core::handleReq, this, std::placeholders::_1, std::placeholders::_2));
 }
     
@@ -36,13 +37,20 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             auto resp = req.response(params);
             sendResp(peer, resp);
             
+            auto updateCb = std::bind(&Core::updateView, this, std::placeholders::_1, std::placeholders::_2);
             if (!req.hasParam("filePath")) {
-                auto view = std::make_unique<View>(viewId);
+                auto view = std::make_unique<View>(viewId, updateCb);
                 viewsMap_[viewId] = std::move(view);
             } else {
                 auto filePath = req.getParams<std::string>("filePath");
-                auto view = std::make_unique<View>(viewId, filePath);
-                viewsMap_[viewId] = std::move(view);
+                auto viewForFile = viewWithFilePath(filePath);
+                if (viewForFile != nullptr) {
+                    auto view = std::make_unique<View>(viewId, viewForFile, updateCb);
+                    viewsMap_[viewId] = std::move(view);
+                } else {
+                    auto view = std::make_unique<View>(viewId, filePath, updateCb);
+                    viewsMap_[viewId] = std::move(view);
+                }
             }
             peersMap_[viewId] = peer;
             break;
@@ -145,6 +153,20 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             view->select(Range(pos, len));
             break;
         }
+         
+        case Request::MethodType::save: {
+            auto viewId = req.getParams<size_t>("viewId");
+            auto view = viewWithId(viewId);
+            Expects(view != nullptr);
+            
+            if (!req.hasParam("filePath")) {
+                view->save();
+            } else {
+                const auto& filePath = req.getParams<std::string>("filePath");
+                view->save(filePath);
+            }
+            break;
+        }
             
         case Request::MethodType::update: {
             throw std::invalid_argument("Update request sent to core");
@@ -161,6 +183,19 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
 void Core::sendResp(Rpc::RpcPeer* client, Request req) {
     rpc_->send(client, req.toJson());
 }
+    
+void Core::updateView(size_t viewId, Range range) {
+    auto view = viewWithId(viewId);
+    Expects(view != nullptr);
+    auto peer = portForView(viewId);
+    Expects(peer != nullptr);
+    
+    auto params = nlohmann::json::object();
+    params["range"].push_back(range.location);
+    params["range"].push_back(range.length);
+    auto req = Request(nextReqId_++, Request::MethodType::update, params);
+    sendResp(peer, req);
+}
    
 View* Core::viewWithId(size_t viewId) {
     auto iter = viewsMap_.find(viewId);
@@ -169,6 +204,15 @@ View* Core::viewWithId(size_t viewId) {
     } else {
         return nullptr;
     }
+}
+    
+View* Core::viewWithFilePath(const std::string& filePath) {
+    for (auto& v : viewsMap_) {
+        if (v.second->filePath() == filePath) {
+            return v.second.get();
+        }
+    }
+    return nullptr;
 }
     
 Rpc::RpcPeer* Core::portForView(size_t viewId) {

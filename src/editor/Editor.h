@@ -35,6 +35,10 @@ public:
     
     std::map<size_t, detail::CodePointList> region(size_t beginRow, size_t endRow);
     
+    void clearRevisions() {
+        engine_.revisions().clear();
+    }
+    
 private:
     std::map<size_t, detail::CodePointList> region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow);
     

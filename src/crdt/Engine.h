@@ -30,8 +30,16 @@ public:
     
     void appendRevision(Revision rev);
     
-    void sync(size_t revId);
-        
+    void sync(const Engine& other);
+    
+    const std::vector<Revision>& revisions() const {
+        return revisions_;
+    }
+    
+    std::vector<Revision>& revisions() {
+        return revisions_;
+    }
+    
 private:
     Revision delta(const Revision& history, Revision& rev);
     std::vector<Revision> delta(Revision& rev);

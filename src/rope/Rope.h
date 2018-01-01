@@ -29,9 +29,10 @@ public:
 	Rope(Rope&& l, Rope&& r);
 	
 	Rope();
+    Rope(const Rope&);
+    
 	Rope(Rope&& r) = default;
 	Rope& operator=(Rope&&) = default;
-	Rope(const Rope&) = delete;
 	Rope& operator=(const Rope&) = delete;
 	
 	template <class Converter>
@@ -56,6 +57,15 @@ public:
     }
     
     RopeIter iterator(size_t index) const;
+    
+    bool empty() const {
+        return size_ == 0;
+    }
+    
+    void swap(Rope& other) noexcept {
+        std::swap(size_, other.size_);
+        root_.swap(other.root_);
+    }
     
     std::string string() const;
     
@@ -99,6 +109,7 @@ private:
     
     size_t lengthOfWholeRope(gsl::not_null<detail::RopeNode*> root);
     
+    std::vector<std::unique_ptr<detail::RopeNode>> cloneLeaves() const;
 	bool needBalance();
 	void rebalance();
     

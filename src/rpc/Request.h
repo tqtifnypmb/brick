@@ -43,8 +43,12 @@ public:
         // select(viewId, range);
         select,
         
-        // update
+        // update(range)
         update,
+        
+        // save(filePath)
+        // save()
+        save,
         
         // for response only
         response,
