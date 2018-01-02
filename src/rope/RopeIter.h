@@ -23,10 +23,11 @@ class RopeNode;
 class RopeIter: public std::iterator<std::bidirectional_iterator_tag, const detail::CodePoint> {
 public:
     RopeIter() = default;
-    RopeIter(size_t index, size_t offset, detail::RopeNode* node, const Rope* rope);
+    RopeIter(size_t index, size_t offset, detail::RopeNode* leaf, const Rope* rope);
+    RopeIter(const Rope* rope);
     
-    bool operator==(const RopeIter& rhs);
-    bool operator!=(const RopeIter& rhs) {
+    bool operator==(const RopeIter& rhs) const;
+    bool operator!=(const RopeIter& rhs) const {
         return !(*this == rhs);
     }
     
@@ -60,7 +61,7 @@ public:
         return offset_;
     }
         
-private:
+private:    
     const Rope* rope_;
     detail::RopeNode* node_;
     size_t index_;

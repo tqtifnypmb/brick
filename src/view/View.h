@@ -47,11 +47,7 @@ public:
     void undo();
     void select(Range sel);
     
-    void save() {
-        Expects(!filePath_.empty());
-        save(filePath_);
-    }
-    
+    void save();
     void save(const std::string& filePath);
     
     template <class Converter>
@@ -70,7 +66,7 @@ public:
         return viewSize_;
     }
     
-    bool hasChild() const {
+    bool hasChildren() const {
         return !children_.empty();
     }
     
@@ -90,7 +86,7 @@ public:
     }
     
     bool hasParent() const {
-        return parent() == nullptr;
+        return parent() != nullptr;
     }
     
     const View* parent() const {

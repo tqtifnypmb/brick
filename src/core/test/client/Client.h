@@ -9,10 +9,13 @@
 #pragma once
 
 #include <string>
+#include <functional>
 
 class Client {
 public:
-    Client(const char* ip, int16_t port);
+    using read_cb = std::function<void(Client&)>;
+    
+    Client(const char* ip, int16_t port, read_cb user_input_cb, read_cb server_input_cb);
     
     void write(const std::string& cnt);
     std::string read();
@@ -21,9 +24,14 @@ public:
         return reqId_++;
     }
     
+    int loop();
+    void stop();
     ~Client();
     
-private:    
+private:
+    read_cb user_input_cb_;
+    read_cb server_input_cb_;
     int server_;
     int reqId_;
+    bool stopped_;
 };

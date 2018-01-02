@@ -44,6 +44,7 @@ View::View(size_t viewId, const std::string& filePath, UpdateCb cb)
     , parent_(nullptr)
     , update_cb_(cb) {
     // FIXME: - read file content
+    editor_ = std::make_unique<Editor>(this);
 }
     
 View::View(size_t viewId, View* parent, UpdateCb cb)
@@ -84,29 +85,37 @@ std::map<size_t, detail::CodePointList> View::regionImpl(size_t begRow, size_t e
     return editor_->region(begRow, endRow);
 }
     
+void View::save()  {
+    if (filePath_.empty()) {
+        throw std::invalid_argument("Invalid file path");
+    }
+    save(filePath_);
+}
+    
 void View::save(const std::string& filePath) {
     
 }
   
 void View::update(View* src) {
     // 1. merve revision
-    if (!hasChild() || !hasParent()) {
-        if (hasParent() && parent_ != this) {
+    if (hasChildren() || hasParent()) {
+        if (hasParent() && parent_ != src) {
             parent_->editor_->merge(*editor_);
             parent_->update(this);
         }
         
         for (auto child : children_) {
-            if (child == this) continue;
+            if (child == src) continue;
             
             child->editor_->merge(*editor_);
             child->update(this);
         }
     }
+    editor_->clearRevisions();
     
     // 2. update view
-    editor_->clearRevisions();
-    update_cb_(viewId_, Range(static_cast<int>(visibleRange_.first), static_cast<int>(visibleRange_.second)));
+    auto affectedRange = Range(static_cast<int>(visibleRange_.first), static_cast<int>(visibleRange_.second));
+    update_cb_(viewId_, affectedRange);
 }
     
 }   // namespace brick

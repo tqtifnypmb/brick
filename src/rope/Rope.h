@@ -86,7 +86,7 @@ public:
     }
     
     std::tuple<detail::RopeNodePtr, size_t> get_test(detail::RopeNode* root, size_t index) {
-        return get(root, index);
+        return getLeaf(root, index);
     }
     
     size_t lengthOfWholeRope_test(gsl::not_null<detail::RopeNode*> root) {
@@ -109,12 +109,12 @@ private:
     
     size_t lengthOfWholeRope(gsl::not_null<detail::RopeNode*> root);
     
-    std::vector<std::unique_ptr<detail::RopeNode>> cloneLeaves() const;
+    std::vector<std::unique_ptr<detail::RopeNode>> collectLeaves(bool move) const;
 	bool needBalance();
 	void rebalance();
     
     std::tuple<detail::RopeNodePtr /* leaf */, size_t /* pos */>
-    get(gsl::not_null<detail::RopeNode*> root, size_t index, detail::RopeNode** lastVisitedNode = nullptr) const;
+    getLeaf(gsl::not_null<detail::RopeNode*> root, size_t index, detail::RopeNode** lastVisitedNode = nullptr) const;
     
     void insertSubRope(detail::RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::RopeNode> subRope, size_t len);
     

@@ -115,6 +115,20 @@ void Rpc::loop() {
     state_ = LoopState::closed;
 }
     
+void Rpc::close(RpcPeer* peer) {
+    if (state_ == LoopState::closed ||
+        state_ == LoopState::ready ||
+        state_ == LoopState::closing) {
+        return;
+    }
+    
+    auto found = std::find(clients_.begin(), clients_.end(), (uv_tcp_t*)peer);
+    if (found != clients_.end()) {
+        uv_read_stop((uv_stream_t*)peer);
+        uv_close((uv_handle_t*)peer, Rpc::close_cb);
+    }
+}
+    
 void Rpc::close() {
     if (state_ == LoopState::closed ||
         state_ == LoopState::ready ||

@@ -27,6 +27,17 @@ Core::Core(const char* ip, int port)
 }
     
 void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
+    size_t viewId = 0;
+    View* view = nullptr;
+    if (req.method() != Request::MethodType::new_view) {
+        viewId = req.getParams<size_t>("viewId");
+        view = viewWithId(viewId);
+        if (view == nullptr) {
+            std::cerr<<"View("<<viewId<<") not found"<<std::endl;
+            return;
+        }
+    }
+    
     switch (req.method()) {
         case Request::MethodType::new_view: {
             auto viewId = nextViewId_++;
@@ -43,9 +54,9 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
                 viewsMap_[viewId] = std::move(view);
             } else {
                 auto filePath = req.getParams<std::string>("filePath");
-                auto viewForFile = viewWithFilePath(filePath);
-                if (viewForFile != nullptr) {
-                    auto view = std::make_unique<View>(viewId, viewForFile, updateCb);
+                auto parent = viewWithFilePath(filePath);
+                if (parent != nullptr) {
+                    auto view = std::make_unique<View>(viewId, parent, updateCb);
                     viewsMap_[viewId] = std::move(view);
                 } else {
                     auto view = std::make_unique<View>(viewId, filePath, updateCb);
@@ -57,21 +68,13 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
         }
             
         case Request::MethodType::close_view: {
-            auto viewId = req.getParams<size_t>("viewId");
-            Expects(viewWithId(viewId) != nullptr);
-            
+            rpc_->close(peer);
             peersMap_.erase(viewId);
             viewsMap_.erase(viewId);
             break;
         }
             
         case Request::MethodType::text: {
-            auto viewId = req.getParams<size_t>("viewId");
-            auto peer = portForView(viewId);
-            Expects(peer != nullptr);
-            auto view = viewWithId(viewId);
-            Expects(view != nullptr);
-            
             decltype(view->region<ASCIIConverter>()) text;
             if (req.hasParam("range")) {
                 auto range = req.getParams<nlohmann::json>("range");
@@ -109,56 +112,34 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
         }
             
         case Request::MethodType::insert: {
-            auto viewId = req.getParams<size_t>("viewId");
             auto bytes = req.getParams<std::string>("bytes");
-            
-            auto view = viewWithId(viewId);
-            Expects(view != nullptr);
-            
             view->insert<ASCIIConverter>(gsl::make_span(bytes.c_str(), bytes.length()));
             break;
         }
             
         case Request::MethodType::erase: {
-            auto viewId = req.getParams<size_t>("viewId");
-            
-            auto view = viewWithId(viewId);
-            Expects(view != nullptr);
-            
             view->erase();
             break;
         }
             
         case Request::MethodType::scroll: {
-            auto viewId = req.getParams<size_t>("viewId");
             auto range = req.getParams<nlohmann::json>("range");
             auto beginRow = range[0].get<int>();
             auto endRow = range[1].get<int>();
-            
-            auto view = viewWithId(viewId);
-            Expects(view != nullptr);
-            
             view->scroll(beginRow, endRow);
             break;
         }
             
         case Request::MethodType::select: {
-            auto viewId = req.getParams<size_t>("viewId");
             auto range = req.getParams<nlohmann::json>("range");
             auto pos = range[0].get<int>();
             auto len = range[1].get<int>();
-            auto view = viewWithId(viewId);
-            Expects(view != nullptr);
             
             view->select(Range(pos, len));
             break;
         }
          
         case Request::MethodType::save: {
-            auto viewId = req.getParams<size_t>("viewId");
-            auto view = viewWithId(viewId);
-            Expects(view != nullptr);
-            
             if (!req.hasParam("filePath")) {
                 view->save();
             } else {

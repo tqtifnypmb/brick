@@ -38,6 +38,7 @@ public:
     void send(RpcPeer* peer, const std::string& msg);
     void loop();
     void close();
+    void close(RpcPeer* peer);
     
 private:
     

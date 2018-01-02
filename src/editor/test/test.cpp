@@ -28,6 +28,10 @@ protected:
         view = std::make_unique<View>(0, updateCb);
         auto cplist = ASCIIConverter::encode(gsl::make_span(input.c_str(), input.length()));
         editor = std::make_unique<Editor>(view.get(), cplist);
+        
+        auto updateCb2 = std::bind(&EditorTest::updateView, this, std::placeholders::_1, std::placeholders::_2);
+        view2 = std::make_unique<View>(0, updateCb2);
+        editor2 = std::make_unique<Editor>(view.get());
     }
     
     void updateView(size_t viewId, Range range) {
@@ -36,6 +40,9 @@ protected:
     
     std::unique_ptr<Editor> editor;
     std::unique_ptr<View> view;
+    
+    std::unique_ptr<Editor> editor2;
+    std::unique_ptr<View> view2;
     std::string input {"abcdef\nghijklm\nnopqrstuvw\nxyz"};
     std::string insert {"1235\n467890"};
 };
@@ -104,4 +111,17 @@ TEST_F(EditorTest, head_out_of_range) {
 TEST_F(EditorTest, tail_out_of_range) {
     auto ret = editor->region(0, 10);
     EXPECT_EQ(ret.size(), 4);
+}
+
+TEST_F(EditorTest, empth_merge) {
+    editor2->merge(*editor);
+    auto eRegion = editor2->region(0, 10);
+    auto ret = editor->region(10, 20);
+    for (auto& rline : ret) {
+        auto eline = eRegion[rline.first];
+        
+        auto eStr = ASCIIConverter::decode(eline);
+        auto rStr = ASCIIConverter::decode(rline.second);
+        EXPECT_EQ(eStr, rStr);
+    }
 }

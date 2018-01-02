@@ -50,6 +50,12 @@ TEST_F(AsciiRopeTest, get) {
         EXPECT_EQ(std::string(1, str[pos]), std::string(1, input[i]));
     }
 }
+
+TEST_F(AsciiRopeTest, copy) {
+    auto copy = Rope(rope);
+    EXPECT_EQ(copy.string(), rope.string());
+    EXPECT_EQ(copy.size(), rope.size());
+}
     
 TEST_F(AsciiRopeTest, iterator) {
     auto begIter = rope.begin();
@@ -253,6 +259,17 @@ TEST_F(AsciiRopeTest, size) {
     
     rope.rebalance_test();
     EXPECT_EQ(input.length(), rope.size());
+}
+    
+TEST(Iterator, empty) {
+    auto rope = Rope();
+    auto end2 = rope.iterator(0);
+    auto begin = rope.begin();
+    EXPECT_EQ(begin, end2);
+    
+    auto end = rope.end();
+    EXPECT_EQ(end, end2);
+    EXPECT_EQ(end, begin);
 }
     
 TEST(Range, basic) {

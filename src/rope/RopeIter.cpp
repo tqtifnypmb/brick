@@ -15,13 +15,17 @@ using namespace brick::detail;
 namespace brick
 {
 
-RopeIter::RopeIter(size_t index, size_t offset, RopeNode* node, const Rope* rope)
-    : node_(node)
+RopeIter::RopeIter(size_t index, size_t offset, RopeNode* leaf, const Rope* rope)
+    : node_(leaf)
     , rope_(rope)
     , index_(index)
-    , offset_(offset) {}
+    , offset_(offset) {
+    if (node_ == nullptr) {
+        throw std::invalid_argument("RopeIter node_ == nullptr");
+    }
+}
     
-bool RopeIter::operator==(const RopeIter& rhs) {
+bool RopeIter::operator==(const RopeIter& rhs) const {
     return node_ == rhs.node_ &&
            rope_ == rhs.rope_ &&
            index_ == rhs.index_ &&
@@ -29,6 +33,10 @@ bool RopeIter::operator==(const RopeIter& rhs) {
 }
     
 RopeIter& RopeIter::operator++() {
+    if (!node_->isLeaf()) {
+        return *this;
+    }
+    
     if (offset_ + 1 < node_->values().size()) {
         offset_ += 1;
     } else {
@@ -45,6 +53,10 @@ RopeIter& RopeIter::operator++() {
 }
   
 RopeIter& RopeIter::operator--() {
+    if (!node_->isLeaf()) {
+        return *this;
+    }
+    
     if (offset_ >= 1) {
         offset_ -= 1;
     } else {
@@ -85,5 +97,4 @@ bool RopeIter::prevLeaf() {
     }
     return false;
 }
-    
 }   // namespace brick

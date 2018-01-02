@@ -89,8 +89,8 @@ Rope::Rope() {
     root_ = std::make_unique<RopeNode>(0, 0, nullptr, nullptr);
 }
     
-Rope::Rope(const Rope& other) {
-    auto leaves = other.cloneLeaves();
+Rope::Rope(const Rope& other): size_(other.size_) {
+    auto leaves = other.collectLeaves(false);
     if (!leaves.empty()) {
         auto rope = Rope(leaves);
         root_ = std::move(rope.root_);
@@ -166,7 +166,7 @@ Rope::Rope(std::vector<std::unique_ptr<RopeNode>>& leaves) {
 }
     
 Rope::Rope(Rope&& l, Rope&& r) {
-    auto [leaf,pos] = l.get(l.root_.get(), 0);
+    auto [leaf,pos] = l.getLeaf(l.root_.get(), 0);
     size_t length = 0;
     while (leaf != nullptr) {
         length += leaf->length();
@@ -207,7 +207,7 @@ RopeNodePtr Rope::nextLeaf(not_null<RopeNode*> current) const {
     }
     
     // 2. get leftmost leaf
-    auto [leaf, pos] = get(nearestNode.get(), 0);
+    auto [leaf, pos] = getLeaf(nearestNode.get(), 0);
 
     Ensures(leaf->isLeaf());
     return leaf;
@@ -244,7 +244,7 @@ RopeNodePtr Rope::prevLeaf(not_null<RopeNode*> current) const {
     }
     
     // 2. get rightmost leaf
-    auto [leaf, pos] = get(nearestNode.get(), nodeLen - 1);
+    auto [leaf, pos] = getLeaf(nearestNode.get(), nodeLen - 1);
     Ensures(leaf->isLeaf());
     return leaf;
 }
@@ -354,7 +354,7 @@ bool Rope::needBalance() {
     return std::abs(diff) >= rebalance_threshold;
 }
 
-std::vector<std::unique_ptr<RopeNode>> Rope::cloneLeaves() const {
+std::vector<std::unique_ptr<RopeNode>> Rope::collectLeaves(bool move) const {
     std::vector<std::unique_ptr<RopeNode>> leaves;
     std::stack<RopeNode*> s;
     s.push(root_.get());
@@ -363,7 +363,11 @@ std::vector<std::unique_ptr<RopeNode>> Rope::cloneLeaves() const {
     while (!s.empty()) {
         if (s.top()->isLeaf()) {
             if (!s.top()->isEmpty()) {
-                leaves.push_back(std::make_unique<RopeNode>(std::move(s.top()->values())));
+                if (move) {
+                    leaves.push_back(std::make_unique<RopeNode>(std::move(s.top()->values())));
+                } else {
+                    leaves.push_back(std::make_unique<RopeNode>(s.top()->values()));
+                }
             }
             s.pop();
         } else if (s.top()->left()) {
@@ -384,7 +388,7 @@ std::vector<std::unique_ptr<RopeNode>> Rope::cloneLeaves() const {
 }
     
 void Rope::rebalance() {
-    auto leaves = cloneLeaves();
+    auto leaves = collectLeaves(true);
     
     if (!leaves.empty()) {
         auto newRope = Rope(leaves);
@@ -396,7 +400,7 @@ void Rope::rebalance() {
 }
  
 /// get leaf at index if exist
-std::tuple<RopeNodePtr, size_t> Rope::get(not_null<RopeNode*> root, size_t index, RopeNode** lastVisitedNode) const {
+std::tuple<RopeNodePtr, size_t> Rope::getLeaf(not_null<RopeNode*> root, size_t index, RopeNode** lastVisitedNode) const {
     RopeNodePtr node = nullptr;
     RopeNode* lastNode = root.get();
     if (index >= root->length()) {
@@ -460,7 +464,7 @@ void Rope::insert(const detail::CodePointList& cplist, size_t index) {
     }
     
     RopeNode* lastVisitedNode;
-    auto [leaf, pos] = get(root_.get(), index, &lastVisitedNode);
+    auto [leaf, pos] = getLeaf(root_.get(), index, &lastVisitedNode);
     if (leaf != nullptr) {
         Expects(leaf->isLeaf());
         
@@ -566,7 +570,7 @@ void Rope::insertSubRope(RopeNodePtr leaf, size_t pos, std::unique_ptr<detail::R
 void Rope::erase(const Range& range) {
     size_ -= range.length;
     
-    auto [leaf, pos] = get(root_.get(), range.location);
+    auto [leaf, pos] = getLeaf(root_.get(), range.location);
     auto remainLeafLen = leaf->values().size() - pos;
     
     if (remainLeafLen >= range.length) {
@@ -617,18 +621,36 @@ void Rope::erase(const Range& range) {
 }
         
 RopeIter Rope::begin() const {
-    auto [leaf, pos] = get(root_.get(), 0);
-    return RopeIter(0, 0, leaf.get(), this);
+    RopeNode* lastNonLeafNode;
+    auto [leaf, pos] = getLeaf(root_.get(), 0, &lastNonLeafNode);
+    if (leaf != nullptr) {
+        return RopeIter(0, 0, leaf.get(), this);
+    } else {
+        // empty rope
+        return RopeIter(size(), 0, lastNonLeafNode, this);
+    }
 }
     
 RopeIter Rope::end() const {
-    auto [leaf, pos] = get(root_.get(), size() - 1);
-    return RopeIter(size() - leaf->length(), pos + 1, leaf.get(), this);
+    RopeNode* lastNonLeafNode;
+    auto [leaf, pos] = getLeaf(root_.get(), size() - 1, &lastNonLeafNode);
+    if (leaf != nullptr) {
+        return RopeIter(size() - leaf->length(), leaf->length(), leaf.get(), this);
+    } else {
+        // empty rope
+        return RopeIter(size(), 0, lastNonLeafNode, this);
+    }
 }
     
 RopeIter Rope::iterator(size_t index) const {
-    auto [leaf, pos] = get(root_.get(), index);
-    return RopeIter(index, pos, leaf.get(), this);
+    if (index > size()) {
+        throw std::out_of_range("index out of range");
+    } else if (index == size()) {
+        return end();
+    } else {
+        auto [leaf, pos] = getLeaf(root_.get(), index);
+        return RopeIter(index, pos, leaf.get(), this);
+    }
 }
     
 std::string Rope::string() const {
@@ -674,7 +696,7 @@ bool Rope::checkHeight() {
         return false;
     };
     
-    auto [leaf, pos] = get(root_.get(), 0);
+    auto [leaf, pos] = getLeaf(root_.get(), 0);
     while (leaf != nullptr) {
         lastNode = leaf.get();
         
@@ -709,7 +731,7 @@ bool Rope::checkLength() {
         return false;
     };
     
-    auto [leaf, pos] = get(root_.get(), 0);
+    auto [leaf, pos] = getLeaf(root_.get(), 0);
     while (leaf != nullptr) {
         delta = leaf->length();
         

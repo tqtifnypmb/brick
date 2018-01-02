@@ -167,22 +167,23 @@ void Engine::appendRevision(Revision rev) {
 }
     
 void Engine::sync(const Engine& other) {
-    if (revisions_.empty()) {
+    if (other.revisions_.empty()) {
         return;
     }
     
-    auto selfLast = revisions_.back();
-    auto otherLast = other.revisions_.back();
-    
-    if (selfLast.authorId() == otherLast.authorId() &&
-        selfLast.revId() == otherLast.revId()) {
-        return;
+    if (!revisions_.empty()) {
+        auto selfLast = revisions_.back();
+        auto otherLast = other.revisions_.back();
+        
+        if (selfLast.authorId() == otherLast.authorId() &&
+            selfLast.revId() == otherLast.revId()) {
+            return;
+        }
     }
     
     // FIXME: mini update view
     for (const auto& rev : other.revisions_) {
         if (rev.authorId() == authorId_) continue;
-        
         appendRevision(rev);
     }
 }
