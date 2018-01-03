@@ -84,8 +84,14 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
 std::vector<Revision> Engine::delta(Revision& rev) {
     std::vector<Revision> additionals;
     for (auto& history : revisions_) {
-        if (rev.authorId() == history.authorId()) {
+        if (rev.authorId() == authorId_) {
             continue;
+        }
+        
+        if (rev.authorId() == history.authorId() &&
+            rev.revId() == history.revId()) {
+            rev.setInvalid();
+            break;
         }
         
         auto addi = delta(history, rev);

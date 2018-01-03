@@ -186,7 +186,6 @@ void Core::updateView(size_t viewId, const Engine::Delta& delta) {
         }
         params.push_back(subParams);
     }
-    
     auto req = Request(nextReqId_++, Request::MethodType::update, params);
     sendResp(peer, req);
 }

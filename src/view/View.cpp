@@ -115,7 +115,7 @@ void View::update(View* src) {
         }
     }
     //FIXME: consider undo
-    editor_->clearRevisions();
+    //editor_->clearRevisions();
     
     // 2. update view
     if (src != this) {
