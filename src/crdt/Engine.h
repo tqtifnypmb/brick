@@ -20,17 +20,19 @@ namespace brick
    
 class Engine {
 public:
+    using Delta = std::vector<std::pair<Range, Revision::Operation>>;
+    
     Engine(size_t authorId, gsl::not_null<Rope*> rope);
     
     template <class Converter>
-    void insert(gsl::span<const char> bytes, size_t pos);
-    void insert(const detail::CodePointList& cplist, size_t pos);
+    Delta insert(gsl::span<const char> bytes, size_t pos);
+    Delta insert(const detail::CodePointList& cplist, size_t pos);
     
-    void erase(const Range& range);
+    Delta erase(const Range& range);
     
-    void appendRevision(Revision rev);
+    Delta appendRevision(Revision rev);
     
-    void sync(const Engine& other);
+    Delta sync(const Engine& other);
     
     const std::vector<Revision>& revisions() const {
         return revisions_;
@@ -44,7 +46,7 @@ private:
     Revision delta(const Revision& history, Revision& rev);
     std::vector<Revision> delta(Revision& rev);
     
-    bool appendRevision(Revision rev, bool pendingRev);
+    bool appendRevision(Revision rev, bool pendingRev, std::vector<Revision>* deltas);
     
     size_t nextRevId() {
         return revId_++;
@@ -58,8 +60,8 @@ private:
 };
     
 template <class Converter>
-void Engine::insert(gsl::span<const char> bytes, size_t pos) {
-    insert(Converter::encode(bytes), pos);
+Engine::Delta Engine::insert(gsl::span<const char> bytes, size_t pos) {
+    return insert(Converter::encode(bytes), pos);
 }
     
 }   // namespace brick

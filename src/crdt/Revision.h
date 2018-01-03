@@ -13,6 +13,7 @@
 
 #include <gsl/gsl>
 #include <vector>
+#include <string>
 
 namespace brick
 {

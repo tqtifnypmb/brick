@@ -165,15 +165,28 @@ void Core::sendResp(Rpc::RpcPeer* client, Request req) {
     rpc_->send(client, req.toJson());
 }
     
-void Core::updateView(size_t viewId, Range range) {
+void Core::updateView(size_t viewId, const Engine::Delta& delta) {
     auto view = viewWithId(viewId);
     Expects(view != nullptr);
     auto peer = portForView(viewId);
     Expects(peer != nullptr);
     
-    auto params = nlohmann::json::object();
-    params["range"].push_back(range.location);
-    params["range"].push_back(range.length);
+    auto params = nlohmann::json::array();
+    for (const auto& d : delta) {
+        auto subParams = nlohmann::json::object();
+        subParams["range"].push_back(d.first.location);
+        subParams["range"].push_back(d.first.length);
+        switch (d.second) {
+            case Revision::Operation::erase:
+                subParams["op"] = "erase";
+                break;
+                
+            case Revision::Operation::insert:
+                subParams["op"] = "insert";
+        }
+        params.push_back(subParams);
+    }
+    
     auto req = Request(nextReqId_++, Request::MethodType::update, params);
     sendResp(peer, req);
 }

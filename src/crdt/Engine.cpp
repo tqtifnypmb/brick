@@ -115,17 +115,17 @@ Engine::Engine(size_t authorId, not_null<Rope*> rope)
     , rope_(rope)
     , revisions_() {}
     
-void Engine::insert(const CodePointList& cplist, size_t pos) {
+Engine::Delta Engine::insert(const CodePointList& cplist, size_t pos) {
     auto rev = Revision(authorId_, nextRevId(), Revision::Operation::insert, Range(static_cast<int>(pos), 1), cplist);
-    appendRevision(rev);
+    return appendRevision(rev);
 }
     
-void Engine::erase(const Range& range) {
+Engine::Delta Engine::erase(const Range& range) {
     auto rev = Revision(authorId_, nextRevId(), Revision::Operation::erase, range);
-    appendRevision(rev);
+    return appendRevision(rev);
 }
    
-bool Engine::appendRevision(Revision rev, bool pendingRev) {
+bool Engine::appendRevision(Revision rev, bool pendingRev, std::vector<Revision>* d) {
     auto origin = rev;
     auto deltas = delta(rev);
     
@@ -143,6 +143,10 @@ bool Engine::appendRevision(Revision rev, bool pendingRev) {
         revisions_.push_back(delta);
     }
     
+    if (d != nullptr) {
+        d->insert(d->end(), deltas.begin(), deltas.end());
+    }
+    
     // return, if we're handling pending rev
     if (pendingRev) {
         return true;
@@ -151,7 +155,7 @@ bool Engine::appendRevision(Revision rev, bool pendingRev) {
     auto iter = pendingRevs_.begin();
     while (iter != pendingRevs_.end()) {
         auto rev = *iter;
-        bool applied = appendRevision(rev, true);
+        bool applied = appendRevision(rev, true, d);
         if (applied) {
             iter = pendingRevs_.erase(iter);
         } else {
@@ -162,13 +166,20 @@ bool Engine::appendRevision(Revision rev, bool pendingRev) {
     return true;
 }
     
-void Engine::appendRevision(Revision rev) {
-    appendRevision(rev, false);
+Engine::Delta Engine::appendRevision(Revision rev) {
+    std::vector<Revision> deltas;
+    appendRevision(rev, false, &deltas);
+    
+    Delta ret;
+    for (const auto& rev : deltas) {
+        ret.push_back(std::make_pair(rev.range(), rev.op()));
+    }
+    return ret;
 }
     
-void Engine::sync(const Engine& other) {
+Engine::Delta Engine::sync(const Engine& other) {
     if (other.revisions_.empty()) {
-        return;
+        return {};
     }
     
     if (!revisions_.empty()) {
@@ -177,15 +188,23 @@ void Engine::sync(const Engine& other) {
         
         if (selfLast.authorId() == otherLast.authorId() &&
             selfLast.revId() == otherLast.revId()) {
-            return;
+            return {};
         }
     }
     
-    // FIXME: mini update view
+    std::vector<Revision> deltas;
     for (const auto& rev : other.revisions_) {
         if (rev.authorId() == authorId_) continue;
-        appendRevision(rev);
+        
+        appendRevision(rev, false, &deltas);
     }
+    
+    Delta ret;
+    for (const auto& rev : deltas) {
+        auto range = Range(rev.range().location, rev.affectLength());
+        ret.push_back(std::make_pair(range, rev.op()));
+    }
+    return ret;
 }
     
 }   // namespace brick

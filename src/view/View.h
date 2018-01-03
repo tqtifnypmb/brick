@@ -24,7 +24,7 @@ namespace brick
 class View {
 public:
     
-    using UpdateCb = std::function<void(size_t viewId, Range range)>;
+    using UpdateCb = std::function<void(size_t viewId, const Engine::Delta&)>;
     
     View(size_t viewId, UpdateCb cb);
     
@@ -46,6 +46,9 @@ public:
     void erase();
     void undo();
     void select(Range sel);
+    Range selection() const {
+        return sel_;
+    }
     
     void save();
     void save(const std::string& filePath);

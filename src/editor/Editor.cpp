@@ -10,6 +10,7 @@
 #include "../rope/Rope.h"
 #include "../view/View.h"
 
+#include <limits>
 #include <iostream>
 
 using namespace brick::detail;
@@ -30,24 +31,81 @@ Editor::Editor(View* view)
     : Editor(view, CodePointList()) {}
     
 void Editor::insert(const CodePointList &cplist, size_t pos) {
-    // FIXME: line cache invalidate
-    engine_.insert(cplist, pos);
+    auto delta = engine_.insert(cplist, pos);
+    adjust(delta);
 }
     
 void Editor::erase(Range range) {
-    // FIXME: line cache invalidate
-    engine_.erase(range);
+    auto delta = engine_.erase(range);
+    adjust(delta);
 }
     
 void Editor::undo() {
 }
 
-void Editor::merge(const Editor& other) {
+void Editor::adjust(const Engine::Delta& delta) {
+    if (delta.empty()) return;
+   
+    // adjust view selection
+    // FIXME: Doesn't this should happend on client side?
+    auto affected = view_->selection();
+    for (const auto& d : delta) {
+        if (!affected.before(d.first)) {
+            if (affected.intersect(d.first)) {
+                affected.location = d.first.maxLocation();
+                affected.length = 1;
+            } else {
+                if (d.second == Revision::Operation::insert) {
+                    affected.offset(d.first.length);
+                } else {
+                    affected.offset(-d.first.length);
+                }
+            }
+        }
+    }
+    
+    auto sel = view_->selection();
+    if (!sel.before(affected)) {
+        if (sel.intersect(affected)) {
+            
+        } else {
+            sel.offset(affected.length);
+        }
+        view_->select(sel);
+    }
+    
+    // line index cache invalidate
+    int minPos = std::numeric_limits<int>::max();
+    int maxPos = 0;
+    std::for_each(delta.begin(), delta.end(), [&minPos, &maxPos](const auto& l) {
+        minPos = std::min(l.first.location, minPos);
+        maxPos = std::max(l.first.maxLocation(), maxPos);
+    });
+    
+    auto iter = linesIndex_.begin();
+    while (iter != linesIndex_.end()) {
+        if (iter->second >= minPos && iter->second < maxPos) {
+            iter = linesIndex_.erase(iter);
+        } else {
+            ++iter;
+        }
+    }
+}
+    
+Engine::Delta Editor::merge(const Editor& other) {
     if (rope_->empty() && engine_.revisions().empty()) {
         auto rope = Rope(*other.rope_);
         rope_->swap(rope);
+        linesIndex_.clear();
+        if (!other.linesIndex_.empty()) {
+            linesIndex_.insert(other.linesIndex_.begin(), other.linesIndex_.end());
+        }
+        
+        Engine::Delta ret;
+        ret.push_back(std::make_pair(Range(0, static_cast<int>(rope.size())), Revision::Operation::insert));
+        return ret;
     } else {
-        engine_.sync(other.engine_);
+        return engine_.sync(other.engine_);
     }
 }
     

@@ -31,7 +31,7 @@ public:
     void erase(Range range);
     void undo();
     
-    void merge(const Editor& editor);
+    Engine::Delta merge(const Editor& editor);
     
     std::map<size_t, detail::CodePointList> region(size_t beginRow, size_t endRow);
     
@@ -41,6 +41,7 @@ public:
     
 private:
     std::map<size_t, detail::CodePointList> region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow);
+    void adjust(const Engine::Delta& delta);
     
     View* view_;
     std::unique_ptr<Rope> rope_;

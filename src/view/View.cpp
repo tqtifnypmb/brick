@@ -68,13 +68,13 @@ void View::insert(const detail::CodePointList& cplist) {
     }
     editor_->insert(cplist, sel_.location);
     sel_.offset(static_cast<int>(cplist.size()));
-    update(nullptr);
+    update(this);
 }
     
 void View::erase() {
     editor_->erase(sel_);
     sel_.length = 0;
-    update(nullptr);
+    update(this);
 }
   
 void View::select(Range sel) {
@@ -93,29 +93,34 @@ void View::save()  {
 }
     
 void View::save(const std::string& filePath) {
-    
 }
   
 void View::update(View* src) {
+    Engine::Delta deltas;
+    
     // 1. merve revision
     if (hasChildren() || hasParent()) {
         if (hasParent() && parent_ != src) {
-            parent_->editor_->merge(*editor_);
+            auto d = parent_->editor_->merge(*editor_);
+            deltas.insert(deltas.end(), d.begin(), d.end());
             parent_->update(this);
         }
         
         for (auto child : children_) {
             if (child == src) continue;
             
-            child->editor_->merge(*editor_);
+            auto d = child->editor_->merge(*editor_);
+            deltas.insert(deltas.end(), d.begin(), d.end());
             child->update(this);
         }
     }
+    //FIXME: consider undo
     editor_->clearRevisions();
     
     // 2. update view
-    auto affectedRange = Range(static_cast<int>(visibleRange_.first), static_cast<int>(visibleRange_.second));
-    update_cb_(viewId_, affectedRange);
+    if (src != this) {
+        update_cb_(viewId_, deltas);
+    }
 }
     
 }   // namespace brick
