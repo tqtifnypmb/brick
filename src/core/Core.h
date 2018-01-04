@@ -32,7 +32,7 @@ private:
     View* viewWithId(size_t viewId);
     View* viewWithFilePath(const std::string& filePath);
     Rpc::RpcPeer* portForView(size_t viewId);
-    
+
     size_t nextReqId_;
     size_t nextViewId_;
     std::map<size_t, Rpc::RpcPeer*> peersMap_;

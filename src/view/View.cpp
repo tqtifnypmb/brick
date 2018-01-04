@@ -26,24 +26,15 @@ View::~View() {
 View::View(size_t viewId, UpdateCb cb)
     : viewId_(viewId)
     , parent_(nullptr)
-    , update_cb_(cb) {
+    , update_cb_(cb)
+    , sel_(Range()) {
     editor_ = std::make_unique<Editor>(this);
 }
-    
-View::View(size_t viewId, const detail::CodePointList& cplist, UpdateCb cb, Range sel)
-    : sel_(sel)
-    , viewId_(viewId)
-    , parent_(nullptr)
-    , update_cb_(cb) {
-    editor_ = std::make_unique<Editor>(this, cplist);
-}
-    
+        
 View::View(size_t viewId, const std::string& filePath, UpdateCb cb)
-    : viewId_(viewId)
-    , filePath_(filePath)
-    , parent_(nullptr)
-    , update_cb_(cb) {
+    : View(viewId, cb) {
     // FIXME: - read file content
+    filePath_ = filePath;
     editor_ = std::make_unique<Editor>(this);
 }
     
@@ -68,13 +59,13 @@ void View::insert(const detail::CodePointList& cplist) {
     }
     editor_->insert(cplist, sel_.location);
     sel_.offset(static_cast<int>(cplist.size()));
-    update(this);
+    update({this});
 }
     
 void View::erase() {
     editor_->erase(sel_);
     sel_.length = 0;
-    update(this);
+    update({this});
 }
   
 void View::select(Range sel) {
@@ -95,31 +86,35 @@ void View::save()  {
 void View::save(const std::string& filePath) {
 }
   
-void View::update(View* src) {
-    Engine::Delta deltas;
+void View::update(std::vector<View*> src) {
+    // 1. update self
+    bool notExist = std::find(src.begin(), src.end(), this) == src.end();
+    if (notExist) {
+        auto deltas = editor_->merge(*src.front()->editor_);
+        update_cb_(viewId_, deltas);
+        src.push_back(this);
+    }
     
-    // 1. merve revision
+    // 2. popagate
     if (hasChildren() || hasParent()) {
-        if (hasParent() && parent_ != src) {
-            auto d = parent_->editor_->merge(*editor_);
-            deltas.insert(deltas.end(), d.begin(), d.end());
-            parent_->update(this);
+        if (hasParent()) {
+            auto notExist = std::find(src.begin(), src.end(), parent_) == src.end();
+            if (notExist) {
+                parent_->update(src);
+            }
         }
         
         for (auto child : children_) {
-            if (child == src) continue;
-            
-            auto d = child->editor_->merge(*editor_);
-            deltas.insert(deltas.end(), d.begin(), d.end());
-            child->update(this);
+            auto notExist = std::find(src.begin(), src.end(), child) == src.end();
+            if (notExist) {
+                child->update(src);
+            }
         }
     }
-    //FIXME: consider undo
-    //editor_->clearRevisions();
     
-    // 2. update view
-    if (src != this) {
-        update_cb_(viewId_, deltas);
+    if (src.front() == this) {      // update is triggered by self
+        //FIXME: consider undo
+        editor_->clearRevisions();
     }
 }
     

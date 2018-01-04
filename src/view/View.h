@@ -27,12 +27,7 @@ public:
     using UpdateCb = std::function<void(size_t viewId, const Engine::Delta&)>;
     
     View(size_t viewId, UpdateCb cb);
-    
-    template <class Converter>
-    View(size_t viewId, gsl::span<const char> text, UpdateCb cb, Range sel = Range());
     View(size_t viewId, View* parent, UpdateCb cb);
-    
-    View(size_t viewId, const detail::CodePointList& cplist, UpdateCb cb, Range sel = Range());
     View(size_t viewId, const std::string& filePath, UpdateCb cb);
     
     ~View();
@@ -97,7 +92,7 @@ public:
     }
     
 private:
-    void update(View* src);
+    void update(std::vector<View*> src);
     
     std::map<size_t, detail::CodePointList> regionImpl(size_t begRow, size_t endRow);
     std::map<size_t, detail::CodePointList> regionImpl() {
@@ -115,11 +110,7 @@ private:
     std::unique_ptr<Editor> editor_;
     std::string filePath_;
 };
-    
-template <class Converter>
-View::View(size_t viewId, gsl::span<const char> text, UpdateCb cb, Range sel)
-    : View(viewId, Converter::encode(text), cb) {}
-    
+        
 template<class Converter>
 void View::insert(gsl::span<const char> bytes) {
     insert(Converter::encode(bytes));

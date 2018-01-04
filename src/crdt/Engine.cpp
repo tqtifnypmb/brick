@@ -188,18 +188,23 @@ Engine::Delta Engine::sync(const Engine& other) {
         return {};
     }
     
-    if (!revisions_.empty()) {
-        auto selfLast = revisions_.back();
-        auto otherLast = other.revisions_.back();
-        
-        if (selfLast.authorId() == otherLast.authorId() &&
-            selfLast.revId() == otherLast.revId()) {
-            return {};
+    auto validId = syncState_[authorId_];
+    size_t latestRevId = validId;
+    std::vector<Revision> deltaRevs;
+    std::for_each(other.revisions_.begin(), other.revisions_.end(), [&latestRevId, &deltaRevs, validId](const auto& rev) {
+        if (rev.revId() >= validId) {
+            deltaRevs.push_back(rev);
         }
+        latestRevId = std::max(latestRevId, rev.revId());
+    });
+    syncState_[authorId_] = latestRevId;
+
+    if (deltaRevs.empty()) {
+        return {};
     }
-    
+
     std::vector<Revision> deltas;
-    for (const auto& rev : other.revisions_) {
+    for (const auto& rev : deltaRevs) {
         if (rev.authorId() == authorId_) continue;
         
         appendRevision(rev, false, &deltas);

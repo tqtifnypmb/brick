@@ -55,6 +55,10 @@ TEST_F(AsciiRopeTest, copy) {
     auto copy = Rope(rope);
     EXPECT_EQ(copy.string(), rope.string());
     EXPECT_EQ(copy.size(), rope.size());
+    
+    auto empty = Rope();
+    auto empty_copy = Rope(empty);
+    EXPECT_EQ(empty.size(), empty_copy.size());
 }
     
 TEST_F(AsciiRopeTest, iterator) {

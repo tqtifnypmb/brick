@@ -92,6 +92,7 @@ Rope::Rope() {
 Rope::Rope(const Rope& other): size_(other.size_) {
     auto leaves = other.collectLeaves(false);
     if (!leaves.empty()) {
+        auto leaves = other.collectLeaves(false);
         auto rope = Rope(leaves);
         root_ = std::move(rope.root_);
     } else {
@@ -382,6 +383,8 @@ std::vector<std::unique_ptr<RopeNode>> Rope::collectLeaves(bool move) const {
             auto right = s.top()->right();
             s.pop();
             s.push(right.get());
+        } else {
+            s.pop();
         }
     }
     return leaves;

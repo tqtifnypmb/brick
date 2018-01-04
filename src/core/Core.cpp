@@ -27,6 +27,9 @@ Core::Core(const char* ip, int port)
 }
     
 void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
+    std::cout<<"==== Begin handling request ====="<<std::endl;
+    std::cout<<req.toJson()<<std::endl;
+
     size_t viewId = 0;
     View* view = nullptr;
     if (req.method() != Request::MethodType::new_view) {
@@ -42,11 +45,6 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
         case Request::MethodType::new_view: {
             auto viewId = nextViewId_++;
             Expects(viewWithId(viewId) == nullptr);
-            
-            auto params = nlohmann::json::object();
-            params["viewId"] = viewId;
-            auto resp = req.response(params);
-            sendResp(peer, resp);
             
             auto updateCb = std::bind(&Core::updateView, this, std::placeholders::_1, std::placeholders::_2);
             if (!req.hasParam("filePath")) {
@@ -64,6 +62,10 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
                 }
             }
             peersMap_[viewId] = peer;
+            auto params = nlohmann::json::object();
+            params["viewId"] = viewId;
+            auto resp = req.response(params);
+            sendResp(peer, resp);
             break;
         }
             
@@ -88,6 +90,7 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             } else {
                 text = view->region<ASCIIConverter>();
             }
+
             auto params = nlohmann::json::object();
             if (!text.empty()) {
                 for (const auto& line : text) {
@@ -159,6 +162,7 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             break;
         }
     }
+    std::cout<<"==== End handling request ====="<<std::endl;
 }
     
 void Core::sendResp(Rpc::RpcPeer* client, Request req) {

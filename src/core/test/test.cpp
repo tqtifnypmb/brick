@@ -52,7 +52,10 @@ void handle_user_input(Client& client) {
     std::cout<<"Params: "<<input<<std::endl;
     
     if (c == 'Q') {
-        sendReq(client, Request::MethodType::exit, "", "Exit Req");
+        auto params = nlohmann::json::object();
+        params["viewId"] = currentView;
+        sendReq(client, Request::MethodType::exit, params, "Exit Req");
+        client.stop();
     }
     
     else if (c == 'I') {

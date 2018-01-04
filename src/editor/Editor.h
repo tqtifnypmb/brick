@@ -23,7 +23,7 @@ class View;
 class Editor {
 public:
     Editor(View* view, const detail::CodePointList& cplist);
-    Editor(View* view);
+    explicit Editor(View* view);
     
     template <class Converter>
     void insert(gsl::span<const char> bytes, size_t pos);

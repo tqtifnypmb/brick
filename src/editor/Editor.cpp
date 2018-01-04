@@ -45,34 +45,6 @@ void Editor::undo() {
 
 void Editor::adjust(const Engine::Delta& delta) {
     if (delta.empty()) return;
-   
-    // adjust view selection
-    // FIXME: Doesn't this should happend on client side?
-    auto affected = view_->selection();
-    for (const auto& d : delta) {
-        if (!affected.before(d.first)) {
-            if (affected.intersect(d.first)) {
-                affected.location = d.first.maxLocation();
-                affected.length = 1;
-            } else {
-                if (d.second == Revision::Operation::insert) {
-                    affected.offset(d.first.length);
-                } else {
-                    affected.offset(-d.first.length);
-                }
-            }
-        }
-    }
-    
-    auto sel = view_->selection();
-    if (!sel.before(affected)) {
-        if (sel.intersect(affected)) {
-            
-        } else {
-            sel.offset(affected.length);
-        }
-        view_->select(sel);
-    }
     
     // line index cache invalidate
     int minPos = std::numeric_limits<int>::max();
@@ -102,10 +74,12 @@ Engine::Delta Editor::merge(const Editor& other) {
         }
         
         Engine::Delta ret;
-        ret.push_back(std::make_pair(Range(0, static_cast<int>(rope.size())), Revision::Operation::insert));
+        ret.push_back(std::make_pair(Range(0, static_cast<int>(rope_->size())), Revision::Operation::insert));
         return ret;
     } else {
-        return engine_.sync(other.engine_);
+        auto deltas = engine_.sync(other.engine_);
+        adjust(deltas);
+        return deltas;
     }
 }
     
@@ -134,7 +108,7 @@ namespace
     }
 }
     
-std::map<size_t, CodePointList> Editor::region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow ) {
+std::map<size_t, CodePointList> Editor::region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow) {
     // 1. find begRow
     auto iterator = rope_->iterator(initIndex);
     RopeIter endIter;
