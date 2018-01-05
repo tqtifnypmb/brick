@@ -312,4 +312,14 @@ TEST(Range, intersect) {
     EXPECT_EQ(true, b.contains(a));
 }
     
+TEST(Range, contain) {
+    auto a = Range(0, 32);
+    auto b = Range(32, 0);
+    auto c = Range(16, 5);
+    
+    EXPECT_EQ(a.contains(b), true);
+    EXPECT_EQ(a.contains(c), true);
+    EXPECT_EQ(b.contains(c), false);
+}
+    
 }

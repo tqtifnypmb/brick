@@ -59,13 +59,17 @@ void View::insert(const detail::CodePointList& cplist) {
     }
     editor_->insert(cplist, sel_.location);
     sel_.offset(static_cast<int>(cplist.size()));
-    update({this});
+    
+    auto src = std::vector<View*> {this};
+    update(src);
 }
     
 void View::erase() {
     editor_->erase(sel_);
     sel_.length = 0;
-    update({this});
+    
+    auto src = std::vector<View*> {this};
+    update(src);
 }
   
 void View::select(Range sel) {
@@ -86,10 +90,10 @@ void View::save()  {
 void View::save(const std::string& filePath) {
 }
   
-void View::update(std::vector<View*> src) {
+void View::update(std::vector<View*>& src) {
     // 1. update self
-    bool notExist = std::find(src.begin(), src.end(), this) == src.end();
-    if (notExist) {
+    bool selfNotExist = std::find(src.begin(), src.end(), this) == src.end();
+    if (selfNotExist) {
         auto deltas = editor_->merge(*src.front()->editor_);
         update_cb_(viewId_, deltas);
         src.push_back(this);
@@ -112,7 +116,7 @@ void View::update(std::vector<View*> src) {
         }
     }
     
-    if (src.front() == this) {      // update is triggered by self
+    if (src.front() == this || selfNotExist) {      // update is triggered by self or state was already async with editor
         //FIXME: consider undo
         editor_->clearRevisions();
     }

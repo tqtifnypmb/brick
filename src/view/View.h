@@ -92,7 +92,7 @@ public:
     }
     
 private:
-    void update(std::vector<View*> src);
+    void update(std::vector<View*>& src);
     
     std::map<size_t, detail::CodePointList> regionImpl(size_t begRow, size_t endRow);
     std::map<size_t, detail::CodePointList> regionImpl() {

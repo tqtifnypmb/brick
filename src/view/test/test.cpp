@@ -31,29 +31,23 @@ protected:
         
         child2 = std::make_unique<View>(2, root.get(), updateCb);
         child2->scroll(0, 100);
+        
+        std::string single = "abcdefghijklmnopqrstuvw1235467890";
+        single_line = ASCIIConverter::encode(gsl::span<const char>(single.c_str(), single.size()));
+        
+        std::string four = "abcdef\nghijklm\nnopqrstuvw\nxyz";
+        four_lines = ASCIIConverter::encode(gsl::span<const char>(four.c_str(), four.size()));
     }
     
     void updateView(size_t viewId, const Engine::DeltaList& dlist) {
-        std::cout<<"=========== "<<viewId<<" ==========="<<std::endl;
-        for (const auto& d : dlist) {
-            std::cout<<"["<<d.first.location<<","<<d.first.length<<"]"<<std::endl;
-            switch (d.second) {
-                case Revision::Operation::erase:
-                    std::cout<<"op: erase"<<std::endl;
-                    break;
-                    
-                case Revision::Operation::insert:
-                    std::cout<<"op: insert"<<std::endl;
-            }
-        }
-        std::cout<<"============================"<<std::endl;
     }
     
     std::unique_ptr<View> root;
     std::unique_ptr<View> child;
     std::unique_ptr<View> child2;
-    std::string four_lines {"abcdef\nghijklm\nnopqrstuvw\nxyz"};
-    std::string sigle_line {"abcdefghijklmnopqrstuvw1235467890"};
+    
+    CodePointList single_line;
+    CodePointList four_lines;
 };
 
 #define CHECK                                       \
@@ -83,20 +77,18 @@ protected:
 }
 
 TEST_F(ViewTest, insert_single_line) {
-    auto cplist = ASCIIConverter::encode(gsl::span<const char>(sigle_line.c_str(), sigle_line.size()));
-    root->insert(cplist);
+    root->insert(single_line);
     CHECK;
     
-    child->insert(cplist);
+    child->insert(single_line);
     CHECK;
-    
-    child2->insert(cplist);
+
+    child2->insert(single_line);
     CHECK;
 }
 
 TEST_F(ViewTest, erase_single_line) {
-    auto cplist = ASCIIConverter::encode(gsl::span<const char>(sigle_line.c_str(), sigle_line.size()));
-    root->insert(cplist);
+    root->insert(single_line);
     CHECK;
     
     root->select(Range(0, 5));
@@ -106,27 +98,28 @@ TEST_F(ViewTest, erase_single_line) {
     child->select(Range(0, 5));
     child->erase();
     CHECK;
-    
+
     child2->select(Range(0, 5));
     child2->erase();
     CHECK;
 }
 
 TEST_F(ViewTest, insert_multi_line) {
-    auto cplist = ASCIIConverter::encode(gsl::span<const char>(four_lines.c_str(), four_lines.size()));
-    root->insert(cplist);
+    root->insert(four_lines);
+    root->select(Range(0, 1));
     CHECK;
     
-    child->insert(cplist);
+    child->insert(four_lines);
+    child->select(Range(0, 1));
     CHECK;
     
-    child2->insert(cplist);
+    child2->insert(four_lines);
+    child2->select(Range(0, 1));
     CHECK;
 }
 
 TEST_F(ViewTest, erase_multi_line) {
-    auto cplist = ASCIIConverter::encode(gsl::span<const char>(four_lines.c_str(), four_lines.size()));
-    root->insert(cplist);
+    root->insert(four_lines);
     CHECK;
     
     root->select(Range(0, 5));

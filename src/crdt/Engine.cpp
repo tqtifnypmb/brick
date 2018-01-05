@@ -43,7 +43,9 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
                         auto intersect = affectRange.intersection(rev.range());
                         auto oldLength = rev.range().length;
                         rev.range().length = std::max(intersect.location - rev.range().location, 0);
-                        auto tail = Revision(rev.authorId(), nextRevId(), rev.op(), Range(affectRange.maxLocation(), oldLength - rev.range().length));
+                        
+                        // Note that additional revision belong to self, so we use self's authorId_ here
+                        auto tail = Revision(authorId_, nextRevId(), rev.op(), Range(affectRange.maxLocation(), oldLength - rev.range().length));
                         return tail;
                     }
                 }
@@ -68,7 +70,9 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
                                 rev.range().length = std::max(0, revMaxLoc - intersect.maxLocation());
                             } else {
                                 rev.range().length = history.range().location - rev.range().location;
-                                auto tail = Revision(rev.authorId(), nextRevId(), rev.op(), Range(intersect.maxLocation(), revMaxLoc - intersect.maxLocation()));
+                                
+                                //Note that additional revision belong to self, so we use self's authorId_ here
+                                auto tail = Revision(authorId_, nextRevId(), rev.op(), Range(intersect.maxLocation(), revMaxLoc - intersect.maxLocation()));
                                 return tail;
                             }
                         }
@@ -84,14 +88,14 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
 std::vector<Revision> Engine::delta(Revision& rev) {
     std::vector<Revision> additionals;
     for (auto& history : revisions_) {
-        if (rev.authorId() == authorId_) {
-            continue;
-        }
-        
         if (rev.authorId() == history.authorId() &&
             rev.revId() == history.revId()) {
             rev.setInvalid();
             break;
+        }
+        
+        if (rev.authorId() == history.authorId()) {
+            continue;
         }
         
         auto addi = delta(history, rev);
@@ -118,7 +122,8 @@ std::vector<Revision> Engine::delta(Revision& rev) {
     
 Engine::Engine(size_t authorId, not_null<Rope*> rope)
     : rope_(rope)
-    , authorId_(authorId) {}
+    , authorId_(authorId)
+    , revId_(0) {}
     
 Engine::DeltaList Engine::insert(const CodePointList& cplist, size_t pos) {
     auto rev = Revision(authorId_, nextRevId(), Revision::Operation::insert, Range(static_cast<int>(pos), 1), cplist);
@@ -167,7 +172,6 @@ bool Engine::appendRevision(Revision rev, bool pendingRev, std::vector<Revision>
             ++iter;
         }
     }
-    
     return true;
 }
     
@@ -187,14 +191,14 @@ Engine::DeltaList Engine::sync(const Engine& other) {
         return {};
     }
     
-    auto validId = syncState_[authorId_];
+    auto validId = syncState_[other.authorId_];
     size_t latestRevId = validId;
     std::vector<Revision> deltaRevs;
     std::for_each(other.revisions_.begin(), other.revisions_.end(), [&latestRevId, &deltaRevs, validId](const auto& rev) {
         if (rev.revId() >= validId) {
             deltaRevs.push_back(rev);
+            latestRevId = std::max(latestRevId, rev.revId());
         }
-        latestRevId = std::max(latestRevId, rev.revId());
     });
 
     if (deltaRevs.empty()) {
@@ -202,7 +206,7 @@ Engine::DeltaList Engine::sync(const Engine& other) {
     }
     
     Expects(latestRevId >= validId);
-    syncState_[authorId_] = latestRevId + 1;
+    syncState_[other.authorId_] = latestRevId + 1;
 
     std::vector<Revision> deltas;
     for (const auto& rev : deltaRevs) {
