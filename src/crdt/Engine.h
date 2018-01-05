@@ -21,19 +21,19 @@ namespace brick
    
 class Engine {
 public:
-    using Delta = std::vector<std::pair<Range, Revision::Operation>>;       // [(index range, op)]
+    using DeltaList = std::vector<std::pair<Range, Revision::Operation>>;       // [(index range, op)]
     
     Engine(size_t authorId, gsl::not_null<Rope*> rope);
     
     template <class Converter>
-    Delta insert(gsl::span<const char> bytes, size_t pos);
-    Delta insert(const detail::CodePointList& cplist, size_t pos);
+    DeltaList insert(gsl::span<const char> bytes, size_t pos);
+    DeltaList insert(const detail::CodePointList& cplist, size_t pos);
     
-    Delta erase(const Range& range);
+    DeltaList erase(const Range& range);
     
-    Delta appendRevision(Revision rev);
+    DeltaList appendRevision(Revision rev);
     
-    Delta sync(const Engine& other);
+    DeltaList sync(const Engine& other);
     
     const std::vector<Revision>& revisions() const {
         return revisions_;
@@ -62,7 +62,7 @@ private:
 };
     
 template <class Converter>
-Engine::Delta Engine::insert(gsl::span<const char> bytes, size_t pos) {
+Engine::DeltaList Engine::insert(gsl::span<const char> bytes, size_t pos) {
     return insert(Converter::encode(bytes), pos);
 }
     

@@ -34,7 +34,7 @@ protected:
         editor2 = std::make_unique<Editor>(view.get());
     }
     
-    void updateView(size_t viewId, const Engine::Delta& range) {
+    void updateView(size_t viewId, const Engine::DeltaList& range) {
         
     }
     

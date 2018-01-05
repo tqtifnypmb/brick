@@ -80,9 +80,9 @@ public:
     
 private:
     
-    detail::CodePointList cplist_;
     size_t authorId_;
     size_t revId_;
+    detail::CodePointList cplist_;
     Operation op_;
     Range range_;
 };

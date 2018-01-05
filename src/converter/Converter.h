@@ -21,7 +21,6 @@ struct ASCIIConverter {
     
     static detail::CodePointList encode(gsl::span<const char> bytes);
     static result_type decode(const detail::CodePointList& cplist);
-    static size_t numOfLine(const detail::CodePointList& cplist);
 };
     
 //struct UTF8Converter {

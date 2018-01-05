@@ -117,16 +117,15 @@ std::vector<Revision> Engine::delta(Revision& rev) {
 }
     
 Engine::Engine(size_t authorId, not_null<Rope*> rope)
-    : authorId_(authorId)
-    , rope_(rope)
-    , revisions_() {}
+    : rope_(rope)
+    , authorId_(authorId) {}
     
-Engine::Delta Engine::insert(const CodePointList& cplist, size_t pos) {
+Engine::DeltaList Engine::insert(const CodePointList& cplist, size_t pos) {
     auto rev = Revision(authorId_, nextRevId(), Revision::Operation::insert, Range(static_cast<int>(pos), 1), cplist);
     return appendRevision(rev);
 }
     
-Engine::Delta Engine::erase(const Range& range) {
+Engine::DeltaList Engine::erase(const Range& range) {
     auto rev = Revision(authorId_, nextRevId(), Revision::Operation::erase, range);
     return appendRevision(rev);
 }
@@ -172,18 +171,18 @@ bool Engine::appendRevision(Revision rev, bool pendingRev, std::vector<Revision>
     return true;
 }
     
-Engine::Delta Engine::appendRevision(Revision rev) {
+Engine::DeltaList Engine::appendRevision(Revision rev) {
     std::vector<Revision> deltas;
     appendRevision(rev, false, &deltas);
     
-    Delta ret;
+    DeltaList ret;
     for (const auto& rev : deltas) {
         ret.push_back(std::make_pair(rev.range(), rev.op()));
     }
     return ret;
 }
     
-Engine::Delta Engine::sync(const Engine& other) {
+Engine::DeltaList Engine::sync(const Engine& other) {
     if (other.revisions_.empty()) {
         return {};
     }
@@ -197,11 +196,13 @@ Engine::Delta Engine::sync(const Engine& other) {
         }
         latestRevId = std::max(latestRevId, rev.revId());
     });
-    syncState_[authorId_] = latestRevId;
 
     if (deltaRevs.empty()) {
         return {};
     }
+    
+    Expects(latestRevId >= validId);
+    syncState_[authorId_] = latestRevId + 1;
 
     std::vector<Revision> deltas;
     for (const auto& rev : deltaRevs) {
@@ -210,7 +211,7 @@ Engine::Delta Engine::sync(const Engine& other) {
         appendRevision(rev, false, &deltas);
     }
     
-    Delta ret;
+    DeltaList ret;
     for (const auto& rev : deltas) {
         auto range = Range(rev.range().location, rev.affectLength());
         ret.push_back(std::make_pair(range, rev.op()));

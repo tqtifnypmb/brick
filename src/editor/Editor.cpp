@@ -43,13 +43,13 @@ void Editor::erase(Range range) {
 void Editor::undo() {
 }
 
-void Editor::adjust(const Engine::Delta& delta) {
-    if (delta.empty()) return;
+void Editor::adjust(const Engine::DeltaList& dlist) {
+    if (dlist.empty()) return;
     
     // line index cache invalidate
     int minPos = std::numeric_limits<int>::max();
     int maxPos = 0;
-    std::for_each(delta.begin(), delta.end(), [&minPos, &maxPos](const auto& l) {
+    std::for_each(dlist.begin(), dlist.end(), [&minPos, &maxPos](const auto& l) {
         minPos = std::min(l.first.location, minPos);
         maxPos = std::max(l.first.maxLocation(), maxPos);
     });
@@ -64,7 +64,14 @@ void Editor::adjust(const Engine::Delta& delta) {
     }
 }
     
-Engine::Delta Editor::merge(const Editor& other) {
+Editor::DeltaList Editor::convertEngineDelta(const Engine::DeltaList& deltas) {
+    if (deltas.empty()) return {};
+    // FIXME: does client really need this?
+    // convert code point index to line num
+    return deltas;
+}
+    
+Editor::DeltaList Editor::merge(const Editor& other) {
     if (rope_->empty() && engine_.revisions().empty()) {
         auto rope = Rope(*other.rope_);
         rope_->swap(rope);
@@ -73,13 +80,13 @@ Engine::Delta Editor::merge(const Editor& other) {
             linesIndex_.insert(other.linesIndex_.begin(), other.linesIndex_.end());
         }
         
-        Engine::Delta ret;
+        Engine::DeltaList ret;
         ret.push_back(std::make_pair(Range(0, static_cast<int>(rope_->size())), Revision::Operation::insert));
-        return ret;
+        return convertEngineDelta(ret);
     } else {
         auto deltas = engine_.sync(other.engine_);
         adjust(deltas);
-        return deltas;
+        return convertEngineDelta(deltas);
     }
 }
     

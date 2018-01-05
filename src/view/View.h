@@ -24,7 +24,7 @@ namespace brick
 class View {
 public:
     
-    using UpdateCb = std::function<void(size_t viewId, const Engine::Delta&)>;
+    using UpdateCb = std::function<void(size_t viewId, const Engine::DeltaList&)>;
     
     View(size_t viewId, UpdateCb cb);
     View(size_t viewId, View* parent, UpdateCb cb);
@@ -102,10 +102,10 @@ private:
     UpdateCb update_cb_;
     
     std::pair<size_t, size_t> visibleRange_;
-    Range sel_;
     size_t viewId_;
     size_t viewSize_;
     View* parent_;
+    Range sel_;
     std::vector<View*> children_;
     std::unique_ptr<Editor> editor_;
     std::string filePath_;

@@ -24,9 +24,9 @@ View::~View() {
 }
     
 View::View(size_t viewId, UpdateCb cb)
-    : viewId_(viewId)
+    : update_cb_(cb)
+    , viewId_(viewId)
     , parent_(nullptr)
-    , update_cb_(cb)
     , sel_(Range()) {
     editor_ = std::make_unique<Editor>(this);
 }

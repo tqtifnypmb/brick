@@ -16,8 +16,8 @@ namespace brick
 {
 
 RopeIter::RopeIter(size_t index, size_t offset, RopeNode* leaf, const Rope* rope)
-    : node_(leaf)
-    , rope_(rope)
+    : rope_(rope)
+    , node_(leaf)
     , index_(index)
     , offset_(offset) {
     if (node_ == nullptr) {

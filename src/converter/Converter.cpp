@@ -31,15 +31,4 @@ ASCIIConverter::result_type ASCIIConverter::decode(const detail::CodePointList& 
     return str;
 }
     
-size_t ASCIIConverter::numOfLine(const detail::CodePointList& cplist) {
-    size_t line = 0;
-    for (auto& cp : cplist) {
-        auto ch = static_cast<uint8_t>(cp[0]);
-        if (ch == '\n') {
-            line += 1;
-        }
-    }
-    return line;
-}
-    
 }   // namespace brick

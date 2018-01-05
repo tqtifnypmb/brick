@@ -27,7 +27,7 @@ public:
 private:
     void handleReq(Rpc::RpcPeer* peer, Request req);
     void sendResp(Rpc::RpcPeer* client, Request req);
-    void updateView(size_t viewId, const Engine::Delta& delta);
+    void updateView(size_t viewId, const Engine::DeltaList& delta);
     
     View* viewWithId(size_t viewId);
     View* viewWithFilePath(const std::string& filePath);

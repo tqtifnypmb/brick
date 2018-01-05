@@ -21,8 +21,8 @@ namespace brick
 {
 
 Core::Core(const char* ip, int port)
-    : nextViewId_(0)
-    , nextReqId_(0) {
+    : nextReqId_(0)
+    , nextViewId_(0) {
     rpc_ = std::make_unique<Rpc>(ip, port, std::bind(&Core::handleReq, this, std::placeholders::_1, std::placeholders::_2));
 }
     
@@ -169,7 +169,7 @@ void Core::sendResp(Rpc::RpcPeer* client, Request req) {
     rpc_->send(client, req.toJson());
 }
     
-void Core::updateView(size_t viewId, const Engine::Delta& delta) {
+void Core::updateView(size_t viewId, const Engine::DeltaList& delta) {
     auto view = viewWithId(viewId);
     Expects(view != nullptr);
     auto peer = portForView(viewId);

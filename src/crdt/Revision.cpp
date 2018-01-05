@@ -21,9 +21,9 @@ Revision::Revision(size_t authorId, size_t revId, Operation op, const Range& ran
 Revision::Revision(size_t authorId, size_t revId, Operation op, const Range& range, const detail::CodePointList& cplist)
     : authorId_(authorId)
     , revId_(revId)
+    , cplist_(cplist)
     , op_(op)
-    , range_(range)
-    , cplist_(cplist) {}
+    , range_(range) {}
   
 void Revision::apply(not_null<Rope*> rope) const {
     switch (op_) {
