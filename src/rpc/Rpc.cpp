@@ -76,7 +76,7 @@ void Rpc::read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     if (nread < 0) {
         uv_read_stop(stream);
         
-        // FIXME: remove client from clients_ or just leave it be there?
+        // FIXME: remove client from clients_ or just leave it there?
     } else {
         auto str = std::string(buf->base, nread);
         self->onNewMsg(stream, str);

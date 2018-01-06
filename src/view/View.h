@@ -69,7 +69,7 @@ public:
     }
     
     void removeChild(const View* child) {
-        auto found = std::find_if(children_.begin(), children_.end(), [child](auto v) { return v->viewId_ == child->viewId_; });
+        auto found = std::find_if(children_.begin(), children_.end(), [child](const auto& v) { return v->viewId_ == child->viewId_; });
         if (found != children_.end()) {
             children_.erase(found);
         }

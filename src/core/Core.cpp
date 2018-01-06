@@ -204,12 +204,19 @@ View* Core::viewWithId(size_t viewId) {
 }
     
 View* Core::viewWithFilePath(const std::string& filePath) {
+    std::vector<View*> views;
     for (auto& v : viewsMap_) {
         if (v.second->filePath() == filePath) {
-            return v.second.get();
+            views.push_back(v.second.get());
         }
     }
-    return nullptr;
+    
+    if (views.empty()) {
+        return nullptr;
+    } else {
+        std::sort(views.begin(), views.end(), [](const auto& l, const auto& r) { return l->viewId() < r->viewId(); });
+        return views.front();
+    }
 }
     
 Rpc::RpcPeer* Core::portForView(size_t viewId) {

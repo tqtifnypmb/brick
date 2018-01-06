@@ -24,13 +24,16 @@ protected:
     virtual void SetUp() {
         auto updateCb = std::bind(&ViewTest::updateView, this, std::placeholders::_1, std::placeholders::_2);
         root = std::make_unique<View>(0, updateCb);
-        root->scroll(0, 100);
+        root->scroll(0, 10);
         
         child = std::make_unique<View>(1, root.get(), updateCb);
-        child->scroll(0, 100);
+        child->scroll(0, 10);
         
         child2 = std::make_unique<View>(2, root.get(), updateCb);
-        child2->scroll(0, 100);
+        child2->scroll(0, 10);
+        
+        child3 = std::make_unique<View>(3, child2.get(), updateCb);
+        child3->scroll(0, 10);
         
         std::string single = "abcdefghijklmnopqrstuvw1235467890";
         single_line = ASCIIConverter::encode(gsl::span<const char>(single.c_str(), single.size()));
@@ -45,6 +48,7 @@ protected:
     std::unique_ptr<View> root;
     std::unique_ptr<View> child;
     std::unique_ptr<View> child2;
+    std::unique_ptr<View> child3;
     
     CodePointList single_line;
     CodePointList four_lines;
@@ -55,9 +59,12 @@ protected:
     auto r = root->region<ASCIIConverter>(0, 10);   \
     auto c = child->region<ASCIIConverter>(0, 10);  \
     auto c2 = child2->region<ASCIIConverter>(0, 10);\
+    auto c3 = child3->region<ASCIIConverter>(0, 10);\
     COMPARE(r, c, "");                              \
     COMPARE(r, c2, "");                             \
     COMPARE(c, c2, "");                             \
+    COMPARE(c3, c, "");                             \
+    COMPARE(c3, r, "");                             \
 }
 
 #define COMPARE(l, r, src)                          \
@@ -76,13 +83,30 @@ protected:
     }                                               \
 }
 
+TEST_F(ViewTest, empty_sync) {
+    root->insert(single_line);
+    CHECK;
+    
+    child->insert(single_line);
+    CHECK;
+    
+    root->insert(single_line);
+    CHECK;
+    
+    child->insert(single_line);
+    CHECK;
+    
+    child->insert(single_line);
+    CHECK;
+}
+
 TEST_F(ViewTest, insert_single_line) {
     root->insert(single_line);
     CHECK;
     
     child->insert(single_line);
     CHECK;
-
+    
     child2->insert(single_line);
     CHECK;
 }

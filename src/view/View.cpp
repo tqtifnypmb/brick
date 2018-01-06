@@ -116,8 +116,10 @@ void View::update(std::vector<View*>& src) {
         }
     }
     
-    if (src.front() == this || selfNotExist) {      // update is triggered by self or state was already async with editor
+    if (src.front() == this || selfNotExist) {
         //FIXME: consider undo
+        
+        // clear revisions when view's state was already async with editor's
         editor_->clearRevisions();
     }
 }
