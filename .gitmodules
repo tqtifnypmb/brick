@@ -1,0 +1,7 @@
+[submodule "3party/gsl"]
+	path = 3party/gsl
+	url = https://github.com/Microsoft/GSL
+[submodule "3party/libuv"]
+	path = 3party/libuv
+	url = https://github.com/libuv/libuv
+	branch = v1.x

@@ -72,16 +72,24 @@ int Client::loop() {
         fd_set freads;
         FD_ZERO(&freads);
         FD_SET(server_, &freads);
-        FD_SET(STDIN_FILENO, &freads);
+        
+        if (user_input_cb_ != nullptr) {
+            FD_SET(STDIN_FILENO, &freads);
+        }
         
         auto max = std::max(server_, STDIN_FILENO) + 1;
+        
+        if (user_input_cb_ == nullptr) {
+            max = server_ + 1;
+        }
+        
         auto nready = select(max, &freads, nullptr, nullptr, 0);
         
         if (nready <= 0) {
             return nready;
         }
         
-        if (FD_ISSET(STDIN_FILENO, &freads)) {
+        if (user_input_cb_ != nullptr && FD_ISSET(STDIN_FILENO, &freads)) {
             user_input_cb_(*this);
         }
         
