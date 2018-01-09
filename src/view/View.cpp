@@ -42,7 +42,8 @@ View::View(size_t viewId, View* parent, UpdateCb cb)
     : View(viewId, cb) {
     parent_ = parent;
     parent_->children_.push_back(this);
-    editor_->merge(*parent->editor_);
+    auto deltas = editor_->merge(*parent->editor_);
+    update_cb_(this, deltas);
 }
     
 void View::scroll(size_t begRow, size_t endRow) {
@@ -95,7 +96,7 @@ void View::update(std::vector<View*>& src) {
     bool selfNotExist = std::find(src.begin(), src.end(), this) == src.end();
     if (selfNotExist) {
         auto deltas = editor_->merge(*src.front()->editor_);
-        update_cb_(viewId_, deltas);
+        update_cb_(this, deltas);
         src.push_back(this);
     }
     

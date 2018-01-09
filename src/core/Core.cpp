@@ -46,6 +46,10 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
             auto viewId = nextViewId_++;
             Expects(viewWithId(viewId) == nullptr);
             
+            // Must happend before new view is constructed
+            // since new view may be sync with parent
+            peersMap_[viewId] = peer;
+            
             auto updateCb = std::bind(&Core::updateView, this, std::placeholders::_1, std::placeholders::_2);
             if (!req.hasParam("filePath")) {
                 auto view = std::make_unique<View>(viewId, updateCb);
@@ -61,7 +65,6 @@ void Core::handleReq(Rpc::RpcPeer* peer, Request req) {
                     viewsMap_[viewId] = std::move(view);
                 }
             }
-            peersMap_[viewId] = peer;
             auto params = nlohmann::json::object();
             params["viewId"] = viewId;
             auto resp = req.response(params);
@@ -169,10 +172,8 @@ void Core::sendResp(Rpc::RpcPeer* client, Request req) {
     rpc_->send(client, req.toJson());
 }
     
-void Core::updateView(size_t viewId, const Engine::DeltaList& delta) {
-    auto view = viewWithId(viewId);
-    Expects(view != nullptr);
-    auto peer = portForView(viewId);
+void Core::updateView(View* view, const Engine::DeltaList& delta) {
+    auto peer = portForView(view->viewId());
     Expects(peer != nullptr);
     
     auto params = nlohmann::json::array();

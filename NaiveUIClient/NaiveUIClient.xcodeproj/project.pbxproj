@@ -16,6 +16,8 @@
 		413C00B220035918007452DF /* NaiveUIClientUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 413C00B120035918007452DF /* NaiveUIClientUITests.m */; };
 		413C05B520036BB3007452DF /* libbrick.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 413C05B420036BB3007452DF /* libbrick.a */; };
 		413C05B620036BDF007452DF /* libuv.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 413C00F620036A27007452DF /* libuv.a */; };
+		4193B2952004B2680038B52C /* CoreWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4193B2942004B2680038B52C /* CoreWrapper.mm */; };
+		4193B29E2004CCA70038B52C /* Window.m in Sources */ = {isa = PBXBuildFile; fileRef = 4193B29D2004CCA70038B52C /* Window.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,6 +56,10 @@
 		413C00B320035918007452DF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		413C00F620036A27007452DF /* libuv.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libuv.a; path = ../src/3party/libuv/libuv.a; sourceTree = "<group>"; };
 		413C05B420036BB3007452DF /* libbrick.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libbrick.a; path = ../libbrick.a; sourceTree = "<group>"; };
+		4193B2932004B2680038B52C /* CoreWrapper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CoreWrapper.h; sourceTree = "<group>"; };
+		4193B2942004B2680038B52C /* CoreWrapper.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreWrapper.mm; sourceTree = "<group>"; };
+		4193B29C2004CCA70038B52C /* Window.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Window.h; sourceTree = "<group>"; };
+		4193B29D2004CCA70038B52C /* Window.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Window.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,8 +115,12 @@
 			children = (
 				413C008F20035918007452DF /* AppDelegate.h */,
 				413C009020035918007452DF /* AppDelegate.m */,
+				4193B2932004B2680038B52C /* CoreWrapper.h */,
+				4193B2942004B2680038B52C /* CoreWrapper.mm */,
 				413C009220035918007452DF /* ViewController.h */,
 				413C009320035918007452DF /* ViewController.mm */,
+				4193B29C2004CCA70038B52C /* Window.h */,
+				4193B29D2004CCA70038B52C /* Window.m */,
 				413C009520035918007452DF /* Assets.xcassets */,
 				413C009720035918007452DF /* Main.storyboard */,
 				413C009A20035918007452DF /* Info.plist */,
@@ -281,7 +291,9 @@
 			files = (
 				413C009420035918007452DF /* ViewController.mm in Sources */,
 				413C009C20035918007452DF /* main.m in Sources */,
+				4193B2952004B2680038B52C /* CoreWrapper.mm in Sources */,
 				413C009120035918007452DF /* AppDelegate.m in Sources */,
+				4193B29E2004CCA70038B52C /* Window.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -435,7 +447,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = NaiveUIClient/NaiveUIClient.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 3MS725E7W8;
@@ -449,6 +460,7 @@
 					"$(SRCROOT)/../",
 					"$(SRCROOT)/../src/3party/libuv/",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tqtifnypmb.NaiveUIClient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/../src/**";
@@ -459,7 +471,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = NaiveUIClient/NaiveUIClient.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 3MS725E7W8;
@@ -473,6 +484,7 @@
 					"$(SRCROOT)/../",
 					"$(SRCROOT)/../src/3party/libuv/",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tqtifnypmb.NaiveUIClient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/../src/**";

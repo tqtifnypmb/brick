@@ -24,7 +24,7 @@ namespace brick
 class View {
 public:
     
-    using UpdateCb = std::function<void(size_t viewId, const Engine::DeltaList&)>;
+    using UpdateCb = std::function<void(View* view, const Engine::DeltaList&)>;
     
     View(size_t viewId, UpdateCb cb);
     View(size_t viewId, View* parent, UpdateCb cb);

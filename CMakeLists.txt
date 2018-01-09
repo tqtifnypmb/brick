@@ -26,11 +26,7 @@ add_subdirectory (${SRC_DIR}/converter/test)
 add_subdirectory (${SRC_DIR}/rpc/test)
 add_subdirectory (${SRC_DIR}/rope/test)
 
-# UI test
-set (UI_SRC ${SRC}
-            ${SRC_DIR}/core/test/client/client.cpp)
-
-add_library (brick STATIC ${UI_SRC})
+add_library (brick STATIC ${SRC})
 set_target_properties(brick PROPERTIES LINKER_LANGUAGE CXX)
 
 target_compile_features(brick PUBLIC cxx_std_17)

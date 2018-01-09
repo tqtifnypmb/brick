@@ -25,7 +25,7 @@ public:
         close_view,
         
         // text(viewId, range) -> region: map<rowNum, rowText>
-        // text() -> region: map<rowNum, rowText>
+        // text(viewId) -> region: map<rowNum, rowText>
         text,
         
         // exit()

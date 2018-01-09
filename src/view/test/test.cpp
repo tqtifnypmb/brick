@@ -42,7 +42,7 @@ protected:
         four_lines = ASCIIConverter::encode(gsl::span<const char>(four.c_str(), four.size()));
     }
     
-    void updateView(size_t viewId, const Engine::DeltaList& dlist) {
+    void updateView(View* view, const Engine::DeltaList& dlist) {
     }
     
     std::unique_ptr<View> root;
