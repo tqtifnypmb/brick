@@ -21,7 +21,7 @@ namespace brick
    
 class Engine {
 public:
-    using DeltaList = std::vector<std::pair<Range, Revision::Operation>>;       // [(index range, op)]
+    using DeltaList = std::vector<Revision>;
     
     Engine(size_t authorId, gsl::not_null<Rope*> rope);
     
@@ -43,15 +43,19 @@ public:
         return revisions_;
     }
     
+    size_t authorId() const {
+        return authorId_;
+    }
+    
+    size_t nextRevId() {
+        return revId_++;
+    }
+    
 private:
     Revision delta(const Revision& history, Revision& rev);
     std::vector<Revision> delta(Revision& rev);
     
     bool appendRevision(Revision rev, bool pendingRev, std::vector<Revision>* deltas);
-    
-    size_t nextRevId() {
-        return revId_++;
-    }
     
     gsl::not_null<Rope*> rope_;
     std::vector<Revision> revisions_;

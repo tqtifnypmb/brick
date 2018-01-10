@@ -172,22 +172,28 @@ void Core::sendResp(Rpc::RpcPeer* client, Request req) {
     rpc_->send(client, req.toJson());
 }
     
-void Core::updateView(View* view, const Engine::DeltaList& delta) {
+void Core::updateView(View* view, const Editor::DeltaList& deltas) {
     auto peer = portForView(view->viewId());
     Expects(peer != nullptr);
     
     auto params = nlohmann::json::array();
-    for (const auto& d : delta) {
+    for (const auto& delta : deltas) {
+        const auto& [rev, begRow, endRow] = delta;
         auto subParams = nlohmann::json::object();
-        subParams["range"].push_back(d.first.location);
-        subParams["range"].push_back(d.first.length);
-        switch (d.second) {
+        subParams["range"].push_back(rev.range().location);
+        subParams["range"].push_back(rev.range().length);
+        subParams["begRow"] = begRow;
+        subParams["endRow"] = endRow;
+        
+        switch (rev.op()) {
             case Revision::Operation::erase:
                 subParams["op"] = "erase";
                 break;
                 
             case Revision::Operation::insert:
+                subParams["text"] = ASCIIConverter::decode(rev.cplist());
                 subParams["op"] = "insert";
+                break;
         }
         params.push_back(subParams);
     }

@@ -9,6 +9,7 @@
 #include "Editor.h"
 #include "../rope/Rope.h"
 #include "../view/View.h"
+#include "../converter/Converter.h"
 
 #include <limits>
 #include <iostream>
@@ -50,8 +51,8 @@ void Editor::adjust(const Engine::DeltaList& dlist) {
     int minPos = std::numeric_limits<int>::max();
     int maxPos = 0;
     std::for_each(dlist.begin(), dlist.end(), [&minPos, &maxPos](const auto& l) {
-        minPos = std::min(l.first.location, minPos);
-        maxPos = std::max(l.first.maxLocation(), maxPos);
+        minPos = std::min(l.range().location, minPos);
+        maxPos = std::max(l.range().maxLocation(), maxPos);
     });
     
     auto iter = linesIndex_.begin();
@@ -64,11 +65,79 @@ void Editor::adjust(const Engine::DeltaList& dlist) {
     }
 }
     
+int Editor::codePointIndexToLineNum(size_t index) {
+    // 1. try linesIndex_ cache first
+    for (const auto& p : linesIndex_) {
+        if (p.second == index) {
+            return static_cast<int>(p.first);
+        }
+    }
+    
+    // 2. try find the closest index
+    std::map<size_t, size_t> indexLines;
+    for (const auto& p : linesIndex_) {
+        indexLines[p.second] = p.first;
+    }
+    
+    auto closest = indexLines.lower_bound(index);
+    if (closest != indexLines.end()) {
+        auto line = codePointIndexToLineNum(closest->first, closest->second, index);
+        linesIndex_[line] = index;
+        return line;
+    } else if (!indexLines.empty()) {
+        auto closest = indexLines.rbegin();
+        auto line = codePointIndexToLineNum(closest->first, closest->second, index);
+        linesIndex_[line] = index;
+        return line;
+    }
+    
+    // 3. count it from begining
+    auto line = codePointIndexToLineNum(0, 0, index);
+    linesIndex_[line] = index;
+    return line;
+}
+    
+namespace
+{
+    bool isNewLine(const CodePoint& cp) {
+        char ch = static_cast<char>(cp[0]);
+        return ch == '\n';
+    }
+}
+    
+int Editor::codePointIndexToLineNum(size_t initIndex, size_t initRow, size_t destIndex) {
+    auto forward = initIndex < destIndex;
+    auto iterator = rope_->iterator(initIndex);
+    auto end = forward ? rope_->end() : rope_->begin();
+    auto offset = forward ? 1 : -1;
+    auto row = static_cast<int>(initRow);
+    
+    while (iterator != end) {
+        std::advance(iterator, offset);
+        if (isNewLine(*iterator)) {
+            row += offset;
+        }
+        
+        if (iterator.index() == initIndex) {
+            return row;
+        }
+    }
+    
+    return row;
+}
+    
 Editor::DeltaList Editor::convertEngineDelta(const Engine::DeltaList& deltas) {
     if (deltas.empty()) return {};
-    // FIXME: does client really need this?
-    // convert code point index to line num
-    return deltas;
+    
+    Editor::DeltaList ret;
+    for (const auto& delta : deltas) {
+        auto begRow = codePointIndexToLineNum(delta.range().location);
+        auto endIndex = delta.range().location + delta.affectLength();
+        auto endRow = codePointIndexToLineNum(endIndex);
+        ret.emplace_back(delta, begRow, endRow);
+    }
+
+    return ret;
 }
     
 Editor::DeltaList Editor::merge(const Editor& other) {
@@ -81,7 +150,9 @@ Editor::DeltaList Editor::merge(const Editor& other) {
         }
         
         Engine::DeltaList ret;
-        ret.push_back(std::make_pair(Range(0, static_cast<int>(rope_->size())), Revision::Operation::insert));
+        auto str = rope_->string();
+        auto cplist = ASCIIConverter::encode(gsl::make_span(str.c_str(), str.length()));
+        ret.emplace_back(engine_.authorId(), engine_.nextRevId(), Revision::Operation::insert, Range(0, static_cast<int>(rope_->size())), cplist);
         return convertEngineDelta(ret);
     } else {
         auto deltas = engine_.sync(other.engine_);
@@ -91,28 +162,22 @@ Editor::DeltaList Editor::merge(const Editor& other) {
 }
     
 std::map<size_t, CodePointList> Editor::region(size_t begRow, size_t endRow) {
+    Expects(begRow < endRow);
+    
     // 1. try to find the row closest begRow
-    auto found = linesIndex_.lower_bound(begRow);
-    if (found != linesIndex_.end()) {
-        return region(found->second, found->first, begRow, endRow);
+    auto closest = linesIndex_.lower_bound(begRow);
+    if (closest != linesIndex_.end()) {
+        return region(closest->second, closest->first, begRow, endRow);
     }
     
     // 2. if not found, the biggest key is the one closest to begRow
     if (!linesIndex_.empty()) {
-        auto last = linesIndex_.rbegin();
-        return region(last->second, last->first, begRow, endRow);
+        auto closest = linesIndex_.rbegin();
+        return region(closest->second, closest->first, begRow, endRow);
     }
     
     // 3. count and cache it
     return region(0, 0, begRow, endRow);
-}
-   
-namespace
-{
-    bool isNewLine(const CodePoint& cp) {
-        char ch = static_cast<char>(cp[0]);
-        return ch == '\n';
-    }
 }
     
 std::map<size_t, CodePointList> Editor::region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow) {

@@ -113,10 +113,21 @@ static void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef add
 - (void)handleUpdate:(Request)req {
     NSLog(@"update %s", req.toJson().c_str());
     
+    NSMutableString* str = [NSMutableString stringWithString:self.textView.textStorage.string];
     for (const auto& update : req.params()) {
         const auto& op = update["op"].get<std::string>();
-        
+        auto begIndex = update["range"][0].get<int>();
+        auto endIndex = update["range"][1].get<int>();
+        auto begRow = update["begRow"].get<int>();
+        auto endRow = update["endRow"].get<int>();
+        if (op == "insert") {
+            auto bytes = update["text"].get<std::string>();
+            [str insertString:[NSString stringWithCString:bytes.c_str() encoding:NSUTF8StringEncoding] atIndex:begIndex];
+        } else if (op == "erase") {
+            [str deleteCharactersInRange:NSMakeRange(begIndex, endIndex)];
+        }
     }
+    self.textView.string = str;
 }
 
 #pragma mark - Client Request

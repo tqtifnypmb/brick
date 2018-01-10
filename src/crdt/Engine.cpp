@@ -178,12 +178,7 @@ bool Engine::appendRevision(Revision rev, bool pendingRev, std::vector<Revision>
 Engine::DeltaList Engine::appendRevision(Revision rev) {
     std::vector<Revision> deltas;
     appendRevision(rev, false, &deltas);
-    
-    DeltaList ret;
-    for (const auto& rev : deltas) {
-        ret.push_back(std::make_pair(rev.range(), rev.op()));
-    }
-    return ret;
+    return deltas;
 }
     
 Engine::DeltaList Engine::sync(const Engine& other) {
@@ -215,12 +210,7 @@ Engine::DeltaList Engine::sync(const Engine& other) {
         appendRevision(rev, false, &deltas);
     }
     
-    DeltaList ret;
-    for (const auto& rev : deltas) {
-        auto range = Range(rev.range().location, rev.affectLength());
-        ret.push_back(std::make_pair(range, rev.op()));
-    }
-    return ret;
+    return deltas;
 }
     
 }   // namespace brick

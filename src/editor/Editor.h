@@ -22,8 +22,8 @@ class Rope;
 class View;
 class Editor {
 public:
-    using DeltaList = std::vector<std::pair<Range, Revision::Operation>>;
     
+    using DeltaList = std::vector<std::tuple<Revision, size_t, size_t>>;     // [(delta, begRow, endRow)]
     Editor(View* view, const detail::CodePointList& cplist);
     explicit Editor(View* view);
     
@@ -45,6 +45,9 @@ private:
     std::map<size_t, detail::CodePointList> region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow);
     void adjust(const Engine::DeltaList& delta);
     Editor::DeltaList convertEngineDelta(const Engine::DeltaList& deltas);
+    
+    int codePointIndexToLineNum(size_t index);
+    int codePointIndexToLineNum(size_t initIndex, size_t initRow, size_t destIndex);
     
     View* view_;
     std::unique_ptr<Rope> rope_;
