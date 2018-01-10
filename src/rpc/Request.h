@@ -43,7 +43,7 @@ public:
         // select(viewId, range);
         select,
         
-        // update(range)
+        // update(viewId, [(op, range, text)])
         update,
         
         // save(filePath)

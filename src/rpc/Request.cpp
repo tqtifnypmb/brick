@@ -40,6 +40,8 @@ Request::MethodType methodTypeFromString(const std::string& method) {
         return Request::MethodType::update;
     } else if (method == "save") {
         return Request::MethodType::save;
+    } else if (method == "response") {
+        return Request::MethodType::response;
     }
     
     throw std::invalid_argument("Unknown rpc method");
@@ -85,9 +87,9 @@ std::string methodTypeToString(Request::MethodType type) {
 }   // namespace
     
 Request::Request(size_t id, MethodType method, const nlohmann::json& params)
-    : method_(method)
+    : id_(id)
     , params_(params)
-    , id_(id) {}
+    , method_(method) {}
     
 Request::Request(size_t id, MethodType method): Request(id, method, nlohmann::json()) {}
     
@@ -96,11 +98,9 @@ std::string Request::toJson() const {
     ret["jsonrpc"] = "2.0";
     ret["params"] = params_;
     ret["id"] = id_;
-    
-    if (method() != MethodType::response) {
-        ret["method"] = methodTypeToString(method());
-    }
-    return ret.dump();
+    ret["method"] = methodTypeToString(method());
+
+    return ret.dump() + "\n";
 }
     
 Request Request::fromJson(const std::string& jstr) {

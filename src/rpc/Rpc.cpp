@@ -9,6 +9,7 @@
 #include "Rpc.h"
 
 #include <string>
+#include <sstream>
 #include <iostream>
 
 using namespace gsl;
@@ -26,7 +27,7 @@ void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
 namespace brick
 {
     
-Rpc::Rpc(const char* ip, int port, const std::function<void(RpcPeer*, Request)>& msg_cb)
+Rpc::Rpc(const char* ip, int port, Callback msg_cb)
     : req_cb_(msg_cb) {
     loop_ = (uv_loop_t*)malloc(sizeof(uv_loop_t));
     uv_loop_init(loop_);
@@ -65,9 +66,18 @@ void Rpc::connection_cb(uv_stream_t* server, int status) {
     }
 }
     
-void Rpc::onNewMsg(uv_stream_t* client, std::string msg) {
-    auto req = Request::fromJson(msg);
-    req_cb_((uv_handle_t*)client, req);
+void Rpc::onNewMsg(uv_stream_t* client, const std::string& msg) {
+    auto sin = std::istringstream(msg);
+    std::string line;
+    while (std::getline(sin, line)) {
+        try {
+            auto req = Request::fromJson(line);
+            req_cb_((uv_handle_t*)client, req);
+        } catch (const std::exception& exp) {
+            std::cerr<<exp.what()<<std::endl;
+            std::cerr<<"Unknow Req :"<<msg<<std::endl;
+        }
+    }
 }
     
 void Rpc::read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {

@@ -51,7 +51,7 @@ using namespace brick;
     }
 }
 
-void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef address, const void *data, void *info) {
+static void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef address, const void *data, void *info) {
     CFDataRef respData = (CFDataRef)data;
     NSData* resp = (__bridge NSData*)respData;
     NSString* respStr = [[NSString alloc] initWithData:resp encoding:NSUTF8StringEncoding];
@@ -60,19 +60,26 @@ void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef address, c
     CFSocketGetContext(s, &ctx);
     ViewController* vc = (__bridge ViewController*)ctx.info;
     
-    std::string cStr = [vc NSStringToString:respStr];
-    auto req = Request::fromJson(cStr);
-    
-    if (req.method() == Request::MethodType::response) {
-        [vc parseResponse:req];
-    } else {
-        [vc handleUpdate:req];
+    for (NSString* s in [respStr componentsSeparatedByString:@"\n"]) {
+        if (s.length == 0) continue;
+        
+        std::string cStr = [vc NSStringToString:s];
+        auto req = Request::fromJson(cStr);
+        
+        if (req.method() == Request::MethodType::response) {
+            [vc parseResponse:req];
+        } else {
+            [vc handleUpdate:req];
+        }
     }
 }
 
 - (void)_createClientSocket {
     CFSocketContext ctx;
     ctx.info = (__bridge void*)self;
+    ctx.retain = nullptr;
+    ctx.release = nullptr;
+    ctx.copyDescription = nullptr;
     _client = CFSocketCreate(kCFAllocatorDefault, PF_INET, SOCK_STREAM, 0, kCFSocketDataCallBack, coreCallback, &ctx);
     
     const char* ip = "127.0.0.1";
@@ -95,16 +102,21 @@ void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef address, c
 #pragma mark - Parse Core Response
 
 - (void)parseResponse:(Request)resp {
+    NSLog(@"%s", resp.toJson().c_str());
+    
     if (_viewId == -1) {
         _viewId = resp.getParams<int>("viewId");
         [self scroll:NSMakeRange(0, 100)];
     }
-    
-    NSLog(@"%s", resp.toJson().c_str());
 }
 
 - (void)handleUpdate:(Request)req {
     NSLog(@"update %s", req.toJson().c_str());
+    
+    for (const auto& update : req.params()) {
+        const auto& op = update["op"].get<std::string>();
+        
+    }
 }
 
 #pragma mark - Client Request

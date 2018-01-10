@@ -22,6 +22,7 @@ namespace brick
 class Rpc {
 public:
     using RpcPeer = uv_handle_t;
+    using Callback = std::function<void(RpcPeer*, Request req)>;
     
     enum class LoopState: int {
         looping = 0,
@@ -30,7 +31,7 @@ public:
         ready
     };
     
-    Rpc(const char* ip, int port, const std::function<void(RpcPeer*, Request)>& req_cb);
+    Rpc(const char* ip, int port, Callback req_cb);
     Rpc(const Rpc&) = delete;
     Rpc& operator=(const Rpc&) = delete;
     ~Rpc();
@@ -43,7 +44,7 @@ public:
 private:
     
     void onNewConnection(uv_tcp_t* client);
-    void onNewMsg(uv_stream_t* client, std::string msg);
+    void onNewMsg(uv_stream_t* client, const std::string& msg);
     void onHandleClosed(uv_handle_t* handle);
     
     static void connection_cb(uv_stream_t* server, int status);
@@ -53,7 +54,7 @@ private:
 
     LoopState state_;
 
-    std::function<void(RpcPeer* peer, Request)> req_cb_;
+    Callback req_cb_;
     std::vector<uv_tcp_t*> clients_;
     gsl::owner<uv_loop_t*> loop_;
     gsl::owner<uv_tcp_t*> server_;
