@@ -26,77 +26,26 @@ Editor::Editor(View* view, const CodePointList& cplist)
     if (!cplist.empty()) {
         rope_->insert(cplist, 0);
     }
+    updateLines(0, cplist, 0);
 }
    
 Editor::Editor(View* view)
     : Editor(view, CodePointList()) {}
     
 void Editor::insert(const CodePointList &cplist, size_t pos) {
+    auto oldSize = rope_->size();
     auto delta = engine_.insert(cplist, pos);
-    adjust(delta);
+    updateLines(pos, cplist, oldSize);
 }
     
 void Editor::erase(Range range) {
     auto delta = engine_.erase(range);
-    adjust(delta);
+    updateLines(range);
 }
     
 void Editor::undo() {
 }
 
-void Editor::adjust(const Engine::DeltaList& dlist) {
-    if (dlist.empty()) return;
-    
-    // line index cache invalidate
-    int minPos = std::numeric_limits<int>::max();
-    int maxPos = 0;
-    std::for_each(dlist.begin(), dlist.end(), [&minPos, &maxPos](const auto& l) {
-        minPos = std::min(l.range().location, minPos);
-        maxPos = std::max(l.range().maxLocation(), maxPos);
-    });
-    
-    auto iter = linesIndex_.begin();
-    while (iter != linesIndex_.end()) {
-        if (iter->second >= minPos && iter->second < maxPos) {
-            iter = linesIndex_.erase(iter);
-        } else {
-            ++iter;
-        }
-    }
-}
-    
-int Editor::codePointIndexToLineNum(size_t index) {
-    // 1. try linesIndex_ cache first
-    for (const auto& p : linesIndex_) {
-        if (p.second == index) {
-            return static_cast<int>(p.first);
-        }
-    }
-    
-    // 2. try find the closest index
-    std::map<size_t, size_t> indexLines;
-    for (const auto& p : linesIndex_) {
-        indexLines[p.second] = p.first;
-    }
-    
-    auto closest = indexLines.lower_bound(index);
-    if (closest != indexLines.end()) {
-        auto line = codePointIndexToLineNum(closest->first, closest->second, index);
-        linesIndex_[line] = index;
-        return line;
-    } else if (!indexLines.empty()) {
-        auto closest = indexLines.rbegin();
-        auto line = codePointIndexToLineNum(closest->first, closest->second, index);
-        linesIndex_[line] = index;
-        return line;
-    }
-    
-    // 3. count it from begining
-    auto line = codePointIndexToLineNum(0, 0, index);
-    linesIndex_[line] = index;
-    return line;
-}
-    
 namespace
 {
     bool isNewLine(const CodePoint& cp) {
@@ -105,35 +54,76 @@ namespace
     }
 }
     
-int Editor::codePointIndexToLineNum(size_t initIndex, size_t initRow, size_t destIndex) {
-    auto forward = initIndex < destIndex;
-    auto iterator = rope_->iterator(initIndex);
-    auto end = forward ? rope_->end() : rope_->begin();
-    auto offset = forward ? 1 : -1;
-    auto row = static_cast<int>(initRow);
-    
-    while (iterator != end) {
-        std::advance(iterator, offset);
-        if (isNewLine(*iterator)) {
-            row += offset;
-        }
-        
-        if (iterator.index() == initIndex) {
-            return row;
+void Editor::updateLines(size_t pos, const detail::CodePointList& cplist, size_t oldRopeSize) {
+    std::vector<size_t> lines;
+    for (auto i = 0; i < cplist.size(); ++i) {
+        const auto& cp = cplist[i];
+        if (isNewLine(cp)) {
+            lines.push_back(i);
         }
     }
+
+    if (linesIndex_.empty()) {
+        Expects(pos == 0);
+        
+        linesIndex_ = lines;
+        return;
+    }
     
-    return row;
+    auto closest = std::lower_bound(linesIndex_.begin(), linesIndex_.end(), pos);
+    
+    if (closest == linesIndex_.end()) {     // appending
+        if (!lines.empty()) {
+            auto prevIndex = oldRopeSize;
+            std::for_each(lines.begin(), lines.end(), [prevIndex](auto& idx) { idx += prevIndex; });
+            linesIndex_.insert(linesIndex_.end(), lines.begin(), lines.end());
+        }
+        return;
+    }
+    
+    std::advance(closest, -1);
+    if (closest == linesIndex_.begin()) {   // prepending
+        auto prevIndex = cplist.size();
+        std::for_each(lines.begin(), lines.end(), [prevIndex](auto& idx) { idx += prevIndex; });
+        if (!lines.empty()) {
+            linesIndex_.insert(linesIndex_.begin(), lines.begin(), lines.end());
+        }
+    } else {
+        for (auto iter = closest; iter != linesIndex_.end(); ++iter) {
+            *iter += cplist.size();
+        }
+        linesIndex_.insert(closest, lines.begin(), lines.end());
+    }
+}
+    
+void Editor::updateLines(Range r) {
+    auto beg = std::upper_bound(linesIndex_.begin(), linesIndex_.end(), r.location);
+    if (beg == linesIndex_.begin()) {
+        throw std::out_of_range("updateLines erase");
+    }
+    std::advance(beg, -1);
+    
+    auto end = std::lower_bound(linesIndex_.begin(), linesIndex_.end(), r.maxLocation());
+    
+    auto p = linesIndex_.erase(beg, end);
+    while (p != linesIndex_.end()) {
+        *p -= r.length;
+    }
 }
     
 Editor::DeltaList Editor::convertEngineDelta(const Engine::DeltaList& deltas) {
     if (deltas.empty()) return {};
     
+    auto indexToLine = [this](int index) {
+        auto iter = std::lower_bound(linesIndex_.begin(), linesIndex_.end(), index);
+        return std::distance(linesIndex_.begin(), iter);
+    };
+    
     Editor::DeltaList ret;
     for (const auto& delta : deltas) {
-        auto begRow = codePointIndexToLineNum(delta.range().location);
+        auto begRow = indexToLine(delta.range().location);
         auto endIndex = delta.range().location + delta.affectLength();
-        auto endRow = codePointIndexToLineNum(endIndex);
+        auto endRow = indexToLine(endIndex);
         ret.emplace_back(delta, begRow, endRow);
     }
 
@@ -146,7 +136,7 @@ Editor::DeltaList Editor::merge(const Editor& other) {
         rope_->swap(rope);
         linesIndex_.clear();
         if (!other.linesIndex_.empty()) {
-            linesIndex_.insert(other.linesIndex_.begin(), other.linesIndex_.end());
+            linesIndex_ = other.linesIndex_;
         }
         
         Engine::DeltaList ret;
@@ -156,95 +146,63 @@ Editor::DeltaList Editor::merge(const Editor& other) {
         return convertEngineDelta(ret);
     } else {
         auto deltas = engine_.sync(other.engine_);
-        adjust(deltas);
         return convertEngineDelta(deltas);
     }
 }
     
-std::map<size_t, CodePointList> Editor::region(size_t begRow, size_t endRow) {
-    Expects(begRow < endRow);
+std::map<size_t, CodePointList> Editor::region(size_t begLine, size_t endLine) {
+    Expects(begLine < endLine);
     
-    // 1. try to find the row closest begRow
-    auto closest = linesIndex_.lower_bound(begRow);
-    if (closest != linesIndex_.end()) {
-        return region(closest->second, closest->first, begRow, endRow);
-    }
-    
-    // 2. if not found, the biggest key is the one closest to begRow
-    if (!linesIndex_.empty()) {
-        auto closest = linesIndex_.rbegin();
-        return region(closest->second, closest->first, begRow, endRow);
-    }
-    
-    // 3. count and cache it
-    return region(0, 0, begRow, endRow);
-}
-    
-std::map<size_t, CodePointList> Editor::region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow) {
-    // 1. find begRow
-    auto iterator = rope_->iterator(initIndex);
-    RopeIter endIter;
-    int offset;
-    auto forward = begRow > initRow;
-    if (forward) {
-        offset = 1;
-        endIter = rope_->end();
-    } else {
-        offset = -1;
-        endIter = rope_->begin();
-    }
-    
-    auto interval = begRow - initRow;
-    while (interval > 0 && iterator != endIter) {
-        auto cp = *iterator;
-        if (isNewLine(cp)) {
-            interval -= 1;
+    if (linesIndex_.empty() && !rope_->empty()) {       // single line
+        std::map<size_t, CodePointList> ret;
+        for (const auto& cp : *rope_) {
+            ret[0].push_back(cp);
         }
-        std::advance(iterator, offset);
+        return ret;
     }
     
-    // begRow out of range
-    if (interval != 0) {
+    if (begLine >= linesIndex_.size()) {    // out of range
         return {};
     }
     
-    // found valid index for begRow, cache it if neccessary
-    auto begIndex = iterator.index() + iterator.offset();
-    if (begRow - initRow >= view_->viewSize()) {
-        linesIndex_[begRow] = begIndex;
-    }
+    auto beg = linesIndex_.begin();
+    std::advance(beg, begLine);
     
-    // 2. find endRow and collect line results
-    auto numOfRow = endRow - begRow;;
-    size_t currentRow = 0;
+    auto end = linesIndex_.begin();
+    std::advance(end, std::min(endLine, linesIndex_.size()));
+    
+    size_t line = begLine;
     std::map<size_t, CodePointList> ret;
-    CodePointList line;
-    while (numOfRow > 0 && iterator != rope_->end()) {
-        auto cp = *iterator;
-        if (isNewLine(cp)) {
-            ret[begRow + currentRow] = line;
-            numOfRow -= 1;
-            currentRow += 1;
-            line.erase(line.begin(), line.end());
-        } else {
-            line.push_back(cp);
-        }
-        std::advance(iterator, 1);
-    }
-    
-    if (!line.empty()) {
-        ret[begRow + currentRow] = line;
-    }
-    
-    if (numOfRow == 0) {
-        // found valid index for endRow, cache it if neccessary
-        size_t endIndex = iterator.index() + iterator.offset();
+    for (auto iter = beg; iter != end; ++iter) {
+        auto endIndex = *iter;
+        auto begIndex = endIndex;
         
-        if (endRow - begRow >= view_->viewSize()) {
-            linesIndex_[endRow] = endIndex;
+        auto prev = iter - 1;
+        if (iter != linesIndex_.begin()) {
+            begIndex = *prev + 1;
+        } else {
+            begIndex = 0;
         }
+
+        auto ropeIterBeg = rope_->iterator(begIndex);
+        for (auto i = begIndex; i <= endIndex; ++i) {
+            ret[line].push_back(*ropeIterBeg);
+            ++ropeIterBeg;
+            
+        }
+        ++line;
     }
     
+    if (end == linesIndex_.end() && endLine > linesIndex_.size() && (linesIndex_.back() + 1) < rope_->size()) {
+        auto begIndex = linesIndex_.back() + 1;
+        auto endIndex = rope_->size();
+        auto ropeIterBeg = rope_->iterator(begIndex);
+        for (auto i = begIndex; i < endIndex; ++i) {
+            
+            ret[line].push_back(*ropeIterBeg);
+            ++ropeIterBeg;
+        }
+    }
     return ret;
 }
     

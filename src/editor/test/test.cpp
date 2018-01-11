@@ -58,6 +58,9 @@ TEST_F(EditorTest, region_head) {
         do {
             std::getline(sstm, line);
             ++i;
+            if (!sstm.eof()) {
+                line += "\n";
+            }
         } while (i <= r.first);
         auto str = ASCIIConverter::decode(r.second);
         EXPECT_EQ(str, line);
@@ -73,6 +76,10 @@ TEST_F(EditorTest, region_head) {
         do {
             std::getline(sstm, line);
             ++i;
+            
+            if (!sstm.eof()) {
+                line += "\n";
+            }
         } while (i <= r.first);
         auto str = ASCIIConverter::decode(r.second);
         EXPECT_EQ(str, line);
@@ -87,6 +94,9 @@ TEST_F(EditorTest, region_middle) {
     std::string line;
     std::getline(sstm, line);
     std::getline(sstm, line);
+    if (!sstm.eof()) {
+        line += "\n";
+    }
     EXPECT_EQ(ASCIIConverter::decode(ret[1]), line);
 }
 
@@ -98,8 +108,14 @@ TEST_F(EditorTest, region_middle_2) {
     std::string line;
     std::getline(sstm, line);
     std::getline(sstm, line);
+    if (!sstm.eof()) {
+        line += "\n";
+    }
     EXPECT_EQ(ASCIIConverter::decode(ret[1]), line);
     std::getline(sstm, line);
+    if (!sstm.eof()) {
+        line += "\n";
+    }
     EXPECT_EQ(ASCIIConverter::decode(ret[2]), line);
 }
 

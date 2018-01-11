@@ -75,6 +75,13 @@ TEST_F(AsciiRopeTest, iterator) {
         ++begIter;
         ++i;
     }
+    
+    i = 0;
+    for (const auto& cp : rope) {
+        auto ch = static_cast<char>(cp[0]);
+        EXPECT_EQ(std::string(1, ch), std::string(1, input[i]));
+        ++i;
+    }
 }
     
 TEST_F(AsciiRopeTest, iterator_reverse) {
@@ -90,6 +97,22 @@ TEST_F(AsciiRopeTest, iterator_reverse) {
         EXPECT_EQ(std::string(1, ch), std::string(1, input[i]));
         ++begIter;
         --i;
+    }
+}
+    
+TEST_F(AsciiRopeTest, iterator_middle) {
+    auto begIter = rope.iterator(input.length() / 4);
+    auto endIter = rope.iterator(input.length() * 3 / 4);
+    
+    auto dist = std::distance(begIter, endIter);
+    EXPECT_EQ(dist, rope.size() / 2);
+    
+    size_t i = input.length() / 4;
+    while (begIter != endIter) {
+        auto ch = static_cast<char>((*begIter)[0]);
+        EXPECT_EQ(std::string(1, ch), std::string(1, input[i]));
+        ++begIter;
+        ++i;
     }
 }
     

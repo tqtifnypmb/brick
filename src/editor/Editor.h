@@ -35,24 +35,22 @@ public:
     
     Editor::DeltaList merge(const Editor& editor);
     
-    std::map<size_t, detail::CodePointList> region(size_t beginRow, size_t endRow);
+    std::map<size_t, detail::CodePointList> region(size_t begLine, size_t endLine);
     
     void clearRevisions() {
         engine_.revisions().clear();
     }
     
 private:
-    std::map<size_t, detail::CodePointList> region(size_t initIndex, size_t initRow, size_t begRow, size_t endRow);
-    void adjust(const Engine::DeltaList& delta);
     Editor::DeltaList convertEngineDelta(const Engine::DeltaList& deltas);
     
-    int codePointIndexToLineNum(size_t index);
-    int codePointIndexToLineNum(size_t initIndex, size_t initRow, size_t destIndex);
-    
+    void updateLines(size_t pos, const detail::CodePointList& cplist, size_t oldRopeSize);
+    void updateLines(Range r);
+        
     View* view_;
     std::unique_ptr<Rope> rope_;
     Engine engine_;
-    std::map<size_t, size_t> linesIndex_;     // line num -> index;
+    std::vector<size_t> linesIndex_;
 };
     
 template <class Converter>
