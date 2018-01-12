@@ -19,13 +19,12 @@ namespace brick
 {
  
 class Rope;
-class View;
 class Editor {
 public:
     
     using DeltaList = std::vector<std::tuple<Revision, size_t, size_t>>;     // [(delta, begRow, endRow)]
-    Editor(View* view, const detail::CodePointList& cplist);
-    explicit Editor(View* view);
+    Editor(size_t viewId, const detail::CodePointList& cplist);
+    explicit Editor(size_t viewId);
     
     template <class Converter>
     void insert(gsl::span<const char> bytes, size_t pos);
@@ -44,10 +43,9 @@ public:
 private:
     Editor::DeltaList convertEngineDelta(const Engine::DeltaList& deltas);
     
-    void updateLines(size_t pos, const detail::CodePointList& cplist, size_t oldRopeSize);
+    void updateLines(size_t pos, const detail::CodePointList& cplist);
     void updateLines(Range r);
-        
-    View* view_;
+    
     std::unique_ptr<Rope> rope_;
     Engine engine_;
     std::vector<size_t> linesIndex_;

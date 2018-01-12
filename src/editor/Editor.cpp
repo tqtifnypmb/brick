@@ -19,23 +19,21 @@ using namespace brick::detail;
 namespace brick
 {
     
-Editor::Editor(View* view, const CodePointList& cplist)
-    : view_(view)
-    , rope_(std::make_unique<Rope>())
-    , engine_(view->viewId(), rope_.get()) {
+Editor::Editor(size_t viewId, const CodePointList& cplist)
+    : rope_(std::make_unique<Rope>())
+    , engine_(viewId, rope_.get()) {
     if (!cplist.empty()) {
         rope_->insert(cplist, 0);
     }
-    updateLines(0, cplist, 0);
+    updateLines(0, cplist);
 }
    
-Editor::Editor(View* view)
-    : Editor(view, CodePointList()) {}
+Editor::Editor(size_t viewId)
+    : Editor(viewId, CodePointList()) {}
     
 void Editor::insert(const CodePointList &cplist, size_t pos) {
-    auto oldSize = rope_->size();
     auto delta = engine_.insert(cplist, pos);
-    updateLines(pos, cplist, oldSize);
+    updateLines(pos, cplist);
 }
     
 void Editor::erase(Range range) {
@@ -54,60 +52,39 @@ namespace
     }
 }
     
-void Editor::updateLines(size_t pos, const detail::CodePointList& cplist, size_t oldRopeSize) {
+void Editor::updateLines(size_t pos, const detail::CodePointList& cplist) {
     std::vector<size_t> lines;
     for (auto i = 0; i < cplist.size(); ++i) {
         const auto& cp = cplist[i];
         if (isNewLine(cp)) {
-            lines.push_back(i);
+            lines.push_back(i + pos);
         }
-    }
-
-    if (linesIndex_.empty()) {
-        Expects(pos == 0);
-        
-        linesIndex_ = lines;
-        return;
     }
     
     auto closest = std::lower_bound(linesIndex_.begin(), linesIndex_.end(), pos);
     
-    if (closest == linesIndex_.end()) {     // appending
-        if (!lines.empty()) {
-            auto prevIndex = oldRopeSize;
-            std::for_each(lines.begin(), lines.end(), [prevIndex](auto& idx) { idx += prevIndex; });
-            linesIndex_.insert(linesIndex_.end(), lines.begin(), lines.end());
-        }
-        return;
+    auto prevIndex = cplist.size();
+    for (auto iter = closest; iter != linesIndex_.end(); ++iter) {
+        *iter += prevIndex;
     }
-    
-    std::advance(closest, -1);
-    if (closest == linesIndex_.begin()) {   // prepending
-        auto prevIndex = cplist.size();
-        std::for_each(lines.begin(), lines.end(), [prevIndex](auto& idx) { idx += prevIndex; });
-        if (!lines.empty()) {
-            linesIndex_.insert(linesIndex_.begin(), lines.begin(), lines.end());
-        }
-    } else {
-        for (auto iter = closest; iter != linesIndex_.end(); ++iter) {
-            *iter += cplist.size();
-        }
-        linesIndex_.insert(closest, lines.begin(), lines.end());
-    }
+    linesIndex_.insert(closest, lines.begin(), lines.end());
 }
     
 void Editor::updateLines(Range r) {
-    auto beg = std::upper_bound(linesIndex_.begin(), linesIndex_.end(), r.location);
-    if (beg == linesIndex_.begin()) {
-        throw std::out_of_range("updateLines erase");
-    }
-    std::advance(beg, -1);
-    
+    auto beg = std::lower_bound(linesIndex_.begin(), linesIndex_.end(), r.location);
     auto end = std::lower_bound(linesIndex_.begin(), linesIndex_.end(), r.maxLocation());
     
-    auto p = linesIndex_.erase(beg, end);
-    while (p != linesIndex_.end()) {
-        *p -= r.length;
+    if (beg != end) {
+        auto p = linesIndex_.erase(beg, end);
+        while (p != linesIndex_.end()) {
+            *p -= r.length;
+            std::advance(p, 1);
+        }
+    } else {
+        while (beg != linesIndex_.end()) {
+            *beg -= r.length;
+            std::advance(beg, 1);
+        }
     }
 }
     
@@ -145,7 +122,17 @@ Editor::DeltaList Editor::merge(const Editor& other) {
         ret.emplace_back(engine_.authorId(), engine_.nextRevId(), Revision::Operation::insert, Range(0, static_cast<int>(rope_->size())), cplist);
         return convertEngineDelta(ret);
     } else {
+        auto oldLen = rope_->size();
         auto deltas = engine_.sync(other.engine_);
+        for (const auto& rev : deltas) {
+            if (rev.op() == Revision::Operation::insert) {
+                updateLines(rev.range().location, rev.cplist());
+                oldLen += rev.cplist().size();
+            } else {
+                updateLines(rev.range());
+                oldLen -= rev.range().length;
+            }
+        }
         return convertEngineDelta(deltas);
     }
 }

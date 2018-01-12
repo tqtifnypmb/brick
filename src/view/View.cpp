@@ -28,14 +28,14 @@ View::View(size_t viewId, UpdateCb cb)
     , viewId_(viewId)
     , parent_(nullptr)
     , sel_(Range()) {
-    editor_ = std::make_unique<Editor>(this);
+    editor_ = std::make_unique<Editor>(viewId);
 }
         
 View::View(size_t viewId, const std::string& filePath, UpdateCb cb)
     : View(viewId, cb) {
     // FIXME: - read file content
     filePath_ = filePath;
-    editor_ = std::make_unique<Editor>(this);
+    editor_ = std::make_unique<Editor>(viewId);
 }
     
 View::View(size_t viewId, View* parent, UpdateCb cb)

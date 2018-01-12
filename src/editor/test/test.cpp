@@ -24,25 +24,14 @@ class EditorTest: public ::testing::Test {
 protected:
     
     virtual void SetUp() {
-        auto updateCb = std::bind(&EditorTest::updateView, this, std::placeholders::_1, std::placeholders::_2);
-        view = std::make_unique<View>(0, updateCb);
         auto cplist = ASCIIConverter::encode(gsl::make_span(input.c_str(), input.length()));
-        editor = std::make_unique<Editor>(view.get(), cplist);
-        
-        auto updateCb2 = std::bind(&EditorTest::updateView, this, std::placeholders::_1, std::placeholders::_2);
-        view2 = std::make_unique<View>(0, updateCb2);
-        editor2 = std::make_unique<Editor>(view.get());
-    }
-    
-    void updateView(View* view, const Editor::DeltaList& range) {
-        
+        editor = std::make_unique<Editor>(0, cplist);
+        editor2 = std::make_unique<Editor>(1);
     }
     
     std::unique_ptr<Editor> editor;
-    std::unique_ptr<View> view;
     
     std::unique_ptr<Editor> editor2;
-    std::unique_ptr<View> view2;
     std::string input {"abcdef\nghijklm\nnopqrstuvw\nxyz"};
     std::string insert {"1235\n467890"};
 };
@@ -140,4 +129,111 @@ TEST_F(EditorTest, empth_merge) {
         auto rStr = ASCIIConverter::decode(rline.second);
         EXPECT_EQ(eStr, rStr);
     }
+}
+
+TEST(LineIndex, insert) {
+    auto editor = Editor(0);
+    auto region = editor.region(0, 1);
+    EXPECT_EQ(region.empty(), true);
+    
+    std::string insert {"1235\n467890"};
+    editor.insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 0);
+    region = editor.region(0, 2);
+    EXPECT_EQ(region.size(), 2);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "467890");
+    
+    // 1235\n4678901235\n467890
+    editor.insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 0);
+    region = editor.region(0, 3);
+    EXPECT_EQ(region.size(), 3);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[2]), "467890");
+    
+    // 1235\n4678901235\n4678901235\n467890
+    editor.insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), insert.size() * 2);
+    region = editor.region(0, 4);
+    EXPECT_EQ(region.size(), 4);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[2]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[3]), "467890");
+    
+    // 121235\n46789035\n4678901235\n4678901235\n467890
+    editor.insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 2);
+    region = editor.region(0, 5);
+    EXPECT_EQ(region.size(), 5);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "121235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "46789035\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[2]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[3]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[4]), "467890");
+    
+    // 1212351235\n467890\n46789035\n4678901235\n4678901235\n467890
+    editor.insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 6);
+    region = editor.region(0, 6);
+    EXPECT_EQ(region.size(), 6);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "1212351235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "467890\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[2]), "46789035\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[3]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[4]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[5]), "467890");
+    
+    // 1212351235\n1235\n467890467890\n46789035\n4678901235\n4678901235\n467890
+    editor.insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 11);
+    region = editor.region(0, 7);
+    EXPECT_EQ(region.size(), 7);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "1212351235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[2]), "467890467890\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[3]), "46789035\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[4]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[5]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[6]), "467890");
+}
+
+TEST(LineIndex, erase) {
+    auto editor = Editor(0);
+    auto region = editor.region(0, 1);
+    EXPECT_EQ(region.empty(), true);
+    
+    std::string insert {"1212351235\n1235\n467890467890\n46789035\n4678901235\n4678901235\n467890"};
+    editor.insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 0);
+    
+    // 351235\n1235\n467890467890\n46789035\n4678901235\n4678901235\n467890
+    editor.erase(Range(0, 4));
+    region = editor.region(0, 7);
+    EXPECT_EQ(region.size(), 7);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "351235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[2]), "467890467890\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[3]), "46789035\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[4]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[5]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[6]), "467890");
+    
+    // 351235\n1235\n467890467890\n46789035\n4678901235\n4678901235\n467
+    editor.erase(Range(insert.length() - 4 - 3, 3));
+    region = editor.region(0, 7);
+    EXPECT_EQ(region.size(), 7);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "351235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[2]), "467890467890\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[3]), "46789035\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[4]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[5]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[6]), "467");
+    
+    // 3512235\n467890467890\n46789035\n4678901235\n4678901235\n467890
+    editor.erase(Range(4, 4));
+    region = editor.region(0, 6);
+    EXPECT_EQ(region.size(), 6);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "3512235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "467890467890\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[2]), "46789035\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[3]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[4]), "4678901235\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[5]), "467");
 }
