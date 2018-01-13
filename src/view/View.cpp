@@ -54,10 +54,10 @@ void View::scroll(size_t begRow, size_t endRow) {
 }
  
 void View::insert(const detail::CodePointList& cplist) {
-    if (sel_.length > 0) {
-        editor_->erase(sel_);
-        sel_.length = 0;
-    }
+//    if (sel_.length > 0) {
+//        editor_->erase(sel_);
+//        sel_.length = 0;
+//    }
     editor_->insert(cplist, sel_.location);
     sel_.offset(static_cast<int>(cplist.size()));
     

@@ -4,7 +4,6 @@ set(SRC ${SRC}
 add_executable (view_test.out ${SRC})
 
 target_compile_features(view_test.out PUBLIC cxx_std_17)
-set(CMAKE_CXX_FLAGS "-g")
 
 #gtest
 target_include_directories(view_test.out PUBLIC ${ROOT_DIR}/gtest/include)

@@ -5,5 +5,3 @@ set (SRC ${SRC}
 set (HEADER ${HEADER}
             ${CMAKE_CURRENT_SOURCE_DIR}/View.h
             PARENT_SCOPE)
-
-        #add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test)

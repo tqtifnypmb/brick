@@ -24,6 +24,7 @@ using namespace brick;
 
 @property (unsafe_unretained) IBOutlet NSTextView *textView;
 @property (assign, nonatomic) BOOL isFirstTime;
+@property (assign, nonatomic) BOOL editingText;
 @end
 
 @implementation ViewController
@@ -193,13 +194,26 @@ static void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef add
 #pragma mark - TextView Delegate
 
 - (void)textViewDidChangeSelection:(NSNotification *)notification {
+    if (self.editingText) {
+        self.editingText = NO;
+        return;
+    }
+    
     NSRange sel = self.textView.selectedRange;
     [self select:sel];
 }
 
 - (BOOL)textView:(NSTextView *)textView shouldChangeTextInRange:(NSRange)affectedCharRange replacementString:(NSString *)replacementString {
+    self.editingText = YES;
+    
     if (replacementString.length == 0) {
-        [self erase:affectedCharRange];
+        if (textView.string.length == 0) {
+            return YES;
+        } else if (textView.selectedRange.length == 0) {
+            [self erase:NSMakeRange(affectedCharRange.location - 1, 1)];
+        } else {
+            [self erase:affectedCharRange];
+        }
     } else {
         [self insertText:replacementString range:affectedCharRange];
     }
@@ -207,6 +221,7 @@ static void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef add
 }
 
 - (void)textDidChange:(NSNotification *)notification {
+    self.editingText = NO;
     [self region];
 }
 

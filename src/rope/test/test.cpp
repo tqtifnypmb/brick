@@ -253,6 +253,16 @@ TEST_F(AsciiRopeTest, erase_all) {
     EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
     
+TEST_F(AsciiRopeTest, erase_last_char) {
+    auto toDelete = Range(input.length() - 1, 1);
+    rope.erase(toDelete);
+    auto result = input.erase(toDelete.location, toDelete.length);
+    EXPECT_EQ(result, rope.string());
+    EXPECT_EQ(true, rope.checkHeight());
+    EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
+}
+    
 TEST_F(AsciiRopeTest, concate) {
     auto cplist = ASCIIConverter::encode(gsl::make_span(insert.c_str(), insert.length()));
     auto rope2 = Rope();

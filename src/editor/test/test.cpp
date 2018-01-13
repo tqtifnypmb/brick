@@ -226,7 +226,7 @@ TEST(LineIndex, erase) {
     EXPECT_EQ(ASCIIConverter::decode(region[5]), "4678901235\n");
     EXPECT_EQ(ASCIIConverter::decode(region[6]), "467");
     
-    // 3512235\n467890467890\n46789035\n4678901235\n4678901235\n467890
+    // 3512235\n467890467890\n46789035\n4678901235\n4678901235\n467
     editor.erase(Range(4, 4));
     region = editor.region(0, 6);
     EXPECT_EQ(region.size(), 6);
@@ -236,4 +236,11 @@ TEST(LineIndex, erase) {
     EXPECT_EQ(ASCIIConverter::decode(region[3]), "4678901235\n");
     EXPECT_EQ(ASCIIConverter::decode(region[4]), "4678901235\n");
     EXPECT_EQ(ASCIIConverter::decode(region[5]), "467");
+    
+    // 5\n467
+    editor.erase(Range(0, insert.length() - 4 - 3 - 4 - 5));
+    region = editor.region(0, 2);
+    EXPECT_EQ(region.size(), 2);
+    EXPECT_EQ(ASCIIConverter::decode(region[0]), "5\n");
+    EXPECT_EQ(ASCIIConverter::decode(region[1]), "467");
 }

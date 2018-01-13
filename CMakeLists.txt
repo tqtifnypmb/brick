@@ -6,7 +6,7 @@ set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(SRC_DIR  ${ROOT_DIR}/src)
  
 set (SRC ${SRC_DIR}/3party/json.hpp)
-set (CMAKE_CXX_FLAGS "-Wall -DGSL_THROW_ON_CONTRACT_VIOLATION")
+set (CMAKE_CXX_FLAGS "-Wall -DGSL_THROW_ON_CONTRACT_VIOLATION -g")
 
 include_directories(${SRC_DIR}/3party/libuv/include)
 link_libraries(${SRC_DIR}/3party/libuv/libuv.a)
@@ -21,6 +21,7 @@ add_subdirectory (${SRC_DIR}/core)
    
 # test
 add_subdirectory (${SRC_DIR}/editor/test)
+add_subdirectory (${SRC_DIR}/view/test)
 add_subdirectory (${SRC_DIR}/crdt/test)
 add_subdirectory (${SRC_DIR}/converter/test)
 add_subdirectory (${SRC_DIR}/rpc/test)
