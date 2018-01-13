@@ -295,28 +295,26 @@ void Rope::removeLeaf(RopeNodePtr node) {
         
         return;
     }
-
-    // FIXME: not test cover yet
     
     // 3. remove the invalid sub-rope
-    size_t height = 0;
-    bool isFromLeft = false;
-    int deltaLen = 0;
-    auto invalidParent = invalidNode->parent();
+
     if (invalidNode->isRoot()) {
         auto emptyRope = Rope();
         root_ = std::move(emptyRope.root_);
         return;
-    } else if (invalidNode->isLeftChild()) {
+    }
+    
+    int deltaLen = 0;
+    auto invalidParent = invalidNode->parent();
+    auto oldHeight = invalidParent->height();
+    if (invalidNode->isLeftChild()) {
         deltaLen = -static_cast<int>(invalidParent->length());
         auto rightChild = invalidParent->right();
         Expects(rightChild != nullptr);
         
-        height = invalidParent->right()->height() + 1;
-        isFromLeft = true;
-        
         invalidParent->setLeft(rightChild);
         invalidParent->setRight(nullptr);
+        invalidParent->setHeight(rightChild->height() + 1);
         
         auto rightChildLen = lengthOfWholeRope(rightChild.get());
         invalidParent->setLength(rightChildLen);
@@ -324,21 +322,21 @@ void Rope::removeLeaf(RopeNodePtr node) {
         Expects(invalidParent->left() != nullptr);
         
         deltaLen = -static_cast<int>(lengthOfWholeRope(invalidNode));
-        height = invalidParent->left()->height() + 1;
         invalidParent->setRight(nullptr);
+        invalidParent->setHeight(invalidParent->left()->height() + 1);
     }
     
     // 4. update height & length
-    std::function<bool(RopeNode&)> infoUpdator = [deltaLen, &height, &isFromLeft](RopeNode& n) {
+    bool isFromLeft = invalidParent->isLeftChild();
+    auto deltaHeight = invalidParent->height() - oldHeight;
+    std::function<bool(RopeNode&)> infoUpdator = [deltaLen, deltaHeight, &isFromLeft](RopeNode& n) {
         if (isFromLeft) {
             n.setLength(n.length() + deltaLen);
         }
         
         isFromLeft = n.isLeftChild();
         
-        auto newHeight = std::max(height, n.height());
-        n.setHeight(newHeight);
-        height = newHeight + 1;
+        n.setHeight(n.height() + deltaHeight);
         
         return false;
     };

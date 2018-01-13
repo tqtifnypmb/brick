@@ -377,6 +377,13 @@ TEST(Rope, test_user_input) {
     EXPECT_EQ(true, rope.checkHeight());
     EXPECT_EQ(true, rope.checkLength());
     EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
+    
+    toDelete = Range(1, 1);
+    rope.erase(toDelete);
+    EXPECT_EQ("a", rope.string());
+    EXPECT_EQ(true, rope.checkHeight());
+    EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
 }
     
 }
