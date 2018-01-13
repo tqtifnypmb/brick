@@ -355,4 +355,28 @@ TEST(Range, contain) {
     EXPECT_EQ(b.contains(c), false);
 }
     
+TEST(Rope, test_user_input) {
+    auto rope = Rope();
+    std::string input = "a";
+    auto cplist = ASCIIConverter::encode(gsl::make_span(input.c_str(), input.length()));
+    rope.insert(cplist, 0);
+    rope.insert(cplist, input.length());
+    rope.insert(cplist, input.length() * 2);
+    rope.insert(cplist, input.length() * 3);
+    
+    auto toDelete = Range(input.length() - 1, 1);
+    rope.erase(toDelete);
+    EXPECT_EQ("aaa", rope.string());
+    EXPECT_EQ(true, rope.checkHeight());
+    EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
+    
+    toDelete = Range(0, 1);
+    rope.erase(toDelete);
+    EXPECT_EQ("aa", rope.string());
+    EXPECT_EQ(true, rope.checkHeight());
+    EXPECT_EQ(true, rope.checkLength());
+    EXPECT_EQ(rope.lengthOfWholeRope_test(rope.root_test()), rope.size());
+}
+    
 }

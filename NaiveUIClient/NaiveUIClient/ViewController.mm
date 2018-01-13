@@ -200,7 +200,7 @@ static void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef add
     }
     
     NSRange sel = self.textView.selectedRange;
-    [self select:sel];
+    //[self select:sel];
 }
 
 - (BOOL)textView:(NSTextView *)textView shouldChangeTextInRange:(NSRange)affectedCharRange replacementString:(NSString *)replacementString {
@@ -209,8 +209,6 @@ static void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef add
     if (replacementString.length == 0) {
         if (textView.string.length == 0) {
             return YES;
-        } else if (textView.selectedRange.length == 0) {
-            [self erase:NSMakeRange(affectedCharRange.location - 1, 1)];
         } else {
             [self erase:affectedCharRange];
         }
