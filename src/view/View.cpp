@@ -54,10 +54,6 @@ void View::scroll(size_t begRow, size_t endRow) {
 }
  
 void View::insert(const detail::CodePointList& cplist) {
-//    if (sel_.length > 0) {
-//        editor_->erase(sel_);
-//        sel_.length = 0;
-//    }
     editor_->insert(cplist, sel_.location);
     sel_.offset(static_cast<int>(cplist.size()));
     
@@ -121,7 +117,7 @@ void View::update(std::vector<View*>& src) {
         //FIXME: consider undo
         
         // clear revisions when view's state was already async with editor's
-        editor_->clearRevisions();
+        //editor_->clearRevisions();
     }
 }
     

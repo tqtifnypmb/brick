@@ -83,78 +83,134 @@ protected:
     }                                               \
 }
 
-TEST_F(ViewTest, empty_sync) {
-    root->insert(single_line);
-    CHECK;
-    
-    child->insert(single_line);
-    CHECK;
-    
-    root->insert(single_line);
-    CHECK;
-    
-    child->insert(single_line);
-    CHECK;
-    
-    child->insert(single_line);
-    CHECK;
+std::string regionToStr(const std::map<size_t, std::string>& region) {
+    std::string str;
+    for (const auto& line : region) {
+        str.append(line.second);
+    }
+    return str;
 }
 
-TEST_F(ViewTest, insert_single_line) {
-    root->insert(single_line);
-    CHECK;
+TEST_F(ViewTest, insert) {
+    std::string insert {"123"};
+    auto cplist = ASCIIConverter::encode(gsl::span<const char>(insert.c_str(), insert.size()));
+    root->insert(cplist);
     
-    child->insert(single_line);
-    CHECK;
+    auto rStr = regionToStr(root->region<ASCIIConverter>(0, 10));
+    auto cStr = regionToStr(child->region<ASCIIConverter>(0, 10));
+    auto c2Str = regionToStr(child2->region<ASCIIConverter>(0, 10));
+    EXPECT_EQ(rStr, insert);
+    EXPECT_EQ(rStr, cStr);
+    EXPECT_EQ(cStr, c2Str);
     
-    child2->insert(single_line);
-    CHECK;
+    std::cout<<"XXXXXXX"<<std::endl;
+    child->select(Range(1, 0));
+    child->insert(cplist);
+    
+    rStr = regionToStr(root->region<ASCIIConverter>(0, 10));
+    cStr = regionToStr(child->region<ASCIIConverter>(0, 10));
+    c2Str = regionToStr(child2->region<ASCIIConverter>(0, 10));
+    EXPECT_EQ(rStr, "112323");
+    EXPECT_EQ(rStr, cStr);
+    EXPECT_EQ(cStr, c2Str);
 }
 
-TEST_F(ViewTest, erase_single_line) {
-    root->insert(single_line);
-    CHECK;
+TEST_F(ViewTest, erase) {
+    std::string insert {"123456789"};
+    auto cplist = ASCIIConverter::encode(gsl::span<const char>(insert.c_str(), insert.size()));
+    root->insert(cplist);
     
-    root->select(Range(0, 5));
-    root->erase();
-    CHECK;
-    
-    child->select(Range(0, 5));
+    auto rStr = regionToStr(root->region<ASCIIConverter>(0, 10));
+    auto cStr = regionToStr(child->region<ASCIIConverter>(0, 10));
+    auto c2Str = regionToStr(child2->region<ASCIIConverter>(0, 10));
+    EXPECT_EQ(rStr, insert);
+    EXPECT_EQ(rStr, cStr);
+    EXPECT_EQ(cStr, c2Str);
+    std::cout<<"XXXXXXX"<<std::endl;
+    child->select(Range(1, 2));
     child->erase();
-    CHECK;
-
-    child2->select(Range(0, 5));
-    child2->erase();
-    CHECK;
+    
+    rStr = regionToStr(root->region<ASCIIConverter>(0, 10));
+    cStr = regionToStr(child->region<ASCIIConverter>(0, 10));
+    c2Str = regionToStr(child2->region<ASCIIConverter>(0, 10));
+    EXPECT_EQ(rStr, "1456789");
+    EXPECT_EQ(rStr, cStr);
+    EXPECT_EQ(cStr, c2Str);
 }
 
-TEST_F(ViewTest, insert_multi_line) {
-    root->insert(four_lines);
-    root->select(Range(0, 1));
-    CHECK;
-    
-    child->insert(four_lines);
-    child->select(Range(0, 1));
-    CHECK;
-    
-    child2->insert(four_lines);
-    child2->select(Range(0, 1));
-    CHECK;
-}
+//TEST_F(ViewTest, empty_sync) {
+//    root->insert(single_line);
+//    CHECK;
+//
+//    child->insert(single_line);
+//    CHECK;
+//
+//    root->insert(single_line);
+//    CHECK;
+//
+//    child->insert(single_line);
+//    CHECK;
+//
+//    child->insert(single_line);
+//    CHECK;
+//}
+//
+//TEST_F(ViewTest, insert_single_line) {
+//    root->insert(single_line);
+//    CHECK;
+//
+//    child->insert(single_line);
+//    CHECK;
+//
+//    child2->insert(single_line);
+//    CHECK;
+//}
+//
+//TEST_F(ViewTest, erase_single_line) {
+//    root->insert(single_line);
+//    CHECK;
+//
+//    root->select(Range(0, 5));
+//    root->erase();
+//    CHECK;
+//
+//    child->select(Range(0, 5));
+//    child->erase();
+//    CHECK;
+//
+//    child2->select(Range(0, 5));
+//    child2->erase();
+//    CHECK;
+//}
+//
+//TEST_F(ViewTest, insert_multi_line) {
+//    root->insert(four_lines);
+//    root->select(Range(0, 1));
+//    CHECK;
+//
+//    child->insert(four_lines);
+//    child->select(Range(0, 1));
+//    CHECK;
+//
+//    child2->insert(four_lines);
+//    child2->select(Range(0, 1));
+//    CHECK;
+//}
+//
+//TEST_F(ViewTest, erase_multi_line) {
+//    root->insert(four_lines);
+//    CHECK;
+//
+//    root->select(Range(0, 5));
+//    root->erase();
+//    CHECK;
+//
+//    child->select(Range(0, 5));
+//    child->erase();
+//    CHECK;
+//
+//    child2->select(Range(0, 5));
+//    child2->erase();
+//    CHECK;
+//}
 
-TEST_F(ViewTest, erase_multi_line) {
-    root->insert(four_lines);
-    CHECK;
-    
-    root->select(Range(0, 5));
-    root->erase();
-    CHECK;
-    
-    child->select(Range(0, 5));
-    child->erase();
-    CHECK;
-    
-    child2->select(Range(0, 5));
-    child2->erase();
-    CHECK;
-}

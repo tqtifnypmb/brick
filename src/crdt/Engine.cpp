@@ -43,9 +43,8 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
                         auto intersect = affectRange.intersection(rev.range());
                         auto oldLength = rev.range().length;
                         rev.range().length = std::max(intersect.location - rev.range().location, 0);
-                        
-                        // Note that additional revision belong to self, so we use self's authorId_ here
-                        auto tail = Revision(authorId_, nextRevId(), rev.op(), Range(affectRange.maxLocation(), oldLength - rev.range().length));
+                        // FIXME: must create a revision belong to same author with valid revId
+                        auto tail = Revision(rev.authorId(), std::numeric_limits<size_t>::max() - rev.revId(), rev.op(), Range(affectRange.maxLocation(), oldLength - rev.range().length));
                         return tail;
                     }
                 }
@@ -70,9 +69,8 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
                                 rev.range().length = std::max(0, revMaxLoc - intersect.maxLocation());
                             } else {
                                 rev.range().length = history.range().location - rev.range().location;
-                                
-                                //Note that additional revision belong to self, so we use self's authorId_ here
-                                auto tail = Revision(authorId_, nextRevId(), rev.op(), Range(intersect.maxLocation(), revMaxLoc - intersect.maxLocation()));
+                                // FIXME: must create a revision belong to same author with valid revId
+                                auto tail = Revision(rev.authorId(), std::numeric_limits<size_t>::max() - rev.revId(), rev.op(), Range(intersect.maxLocation(), revMaxLoc - intersect.maxLocation()));
                                 return tail;
                             }
                         }
@@ -86,15 +84,33 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
 }
     
 std::vector<Revision> Engine::delta(Revision& rev) {
+    if (rev.authorId() == authorId_) {
+        size_t maxSelfRevId = 0;
+        bool found = false;
+        std::for_each(revisions_.begin(), revisions_.end(), [&maxSelfRevId, authorId = authorId_, &found](const auto& r){
+            if (r.authorId() == authorId) {
+                maxSelfRevId = std::max(maxSelfRevId, r.revId());
+                found = true;
+            }
+        });
+        
+        if (found && rev.revId() <= maxSelfRevId) {
+            return {};
+        } else {
+            return {rev};
+        }
+    }
+    
     std::vector<Revision> additionals;
     for (auto& history : revisions_) {
         if (rev.authorId() == history.authorId() &&
-            rev.revId() == history.revId()) {
-            rev.setInvalid();
-            break;
+            rev.revId() <= history.revId()) {
+            return {};
         }
         
-        if (rev.authorId() == history.authorId()) {
+        // rev from same author. Don't need to delta it
+        if (rev.authorId() == history.authorId() &&
+            rev.revId() > history.revId()) {
             continue;
         }
         
@@ -138,6 +154,12 @@ Engine::DeltaList Engine::erase(const Range& range) {
 bool Engine::appendRevision(Revision rev, bool pendingRev, std::vector<Revision>* d) {
     auto origin = rev;
     auto deltas = delta(rev);
+    
+    std::cout<<authorId_<<std::endl;
+    for (const auto& delta : deltas) {
+        std::cout<<delta.authorId()<<" "<<delta.range().location<<" "<<delta.range().length<<std::endl;
+    }
+    std::cout<<"===="<<std::endl;
     
     for (const auto& delta : deltas) {
         if (!delta.canApply(rope_)) {
@@ -185,7 +207,7 @@ Engine::DeltaList Engine::sync(const Engine& other) {
     if (other.revisions_.empty()) {
         return {};
     }
-    
+
     auto validId = syncState_[other.authorId_];
     size_t latestRevId = validId;
     std::vector<Revision> deltaRevs;
@@ -211,6 +233,25 @@ Engine::DeltaList Engine::sync(const Engine& other) {
     }
     
     return deltas;
+}
+    
+void Engine::fastForward(const std::vector<Revision>& revs) {
+    if (revs.empty()) return;
+    
+    decltype(syncState_) state;
+    std::for_each(revs.begin(), revs.end(), [&state](const auto& rev) {
+        state[rev.authorId()] = std::max(state[rev.authorId()], rev.revId());
+    });
+    
+    for (auto& s : state) {
+        auto maxId = s.second + 1;
+        syncState_[s.first] = std::max(syncState_[s.first], maxId);
+    }
+
+    revisions_.insert(revisions_.end(), revs.begin(), revs.end());
+//    for (const auto& rev : revs) {
+//        revisions_.emplace_back(authorId_, nextRevId(), rev.op(), rev.range(), rev.cplist());
+//    }
 }
     
 }   // namespace brick

@@ -12,6 +12,7 @@
 #include "Request.h"
 
 #include <arpa/inet.h>
+#include <vector>
 
 using namespace brick;
 
@@ -25,6 +26,8 @@ using namespace brick;
 @property (unsafe_unretained) IBOutlet NSTextView *textView;
 @property (assign, nonatomic) BOOL isFirstTime;
 @property (assign, nonatomic) BOOL editingText;
+@property (assign, nonatomic) BOOL blockRpc;
+@property (strong, nonatomic) NSMutableArray<NSData*>* pendingReqs;
 @end
 
 @implementation ViewController
@@ -32,6 +35,7 @@ using namespace brick;
 - (void)viewDidLoad {
     [super viewDidLoad];
    
+    self.pendingReqs = [[NSMutableArray alloc] init];
     self.textView.delegate = self;
     _viewId = -1;
     _reqId = 0;
@@ -41,6 +45,24 @@ using namespace brick;
     
     [CoreWrapper sharedInstance];
     [self _createClientSocket];
+}
+
+- (IBAction)blockRpcClicked:(NSButton*)sender {
+    if (self.blockRpc) {
+        [sender setTitle:@"Block Rpc"];
+    } else {
+        [sender setTitle:@"Unblock Rpc"];
+    }
+    self.blockRpc = !self.blockRpc;
+    
+    if (!self.blockRpc) {
+        for (NSData* toSend in self.pendingReqs) {
+            CFSocketError error = CFSocketSendData(_client, NULL, (__bridge_retained CFDataRef)toSend, 0);
+            if (error != kCFSocketSuccess) {
+                std::terminate();
+            }
+        }
+    }
 }
 
 #pragma mark - Setup
@@ -180,9 +202,13 @@ static void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef add
     }
     
     NSData* toSend = [NSData dataWithBytes:reqStr.UTF8String length:[reqStr lengthOfBytesUsingEncoding:NSUTF8StringEncoding]];
-    CFSocketError error = CFSocketSendData(_client, NULL, (__bridge_retained CFDataRef)toSend, 0);
-    if (error != kCFSocketSuccess) {
-        std::terminate();
+    if (self.blockRpc) {
+        [self.pendingReqs addObject:toSend];
+    } else {
+        CFSocketError error = CFSocketSendData(_client, NULL, (__bridge_retained CFDataRef)toSend, 0);
+        if (error != kCFSocketSuccess) {
+            std::terminate();
+        }
     }
 }
 
@@ -199,7 +225,7 @@ static void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef add
         return;
     }
     
-    NSRange sel = self.textView.selectedRange;
+    //NSRange sel = self.textView.selectedRange;
     //[self select:sel];
 }
 

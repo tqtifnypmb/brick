@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="13771" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="B8D-0N-5wS">
     <dependencies>
+        <deployment identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="13771"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -735,12 +736,24 @@
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
                             </scrollView>
+                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jjh-eK-ktN">
+                                <rect key="frame" x="359" y="13" width="101" height="32"/>
+                                <buttonCell key="cell" type="push" title="Block Rpc" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Pzq-7x-oFe">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="blockRpcClicked:" target="XfG-lQ-9wD" id="zD8-vi-pHU"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <constraints>
                             <constraint firstItem="hUd-Ql-XrY" firstAttribute="centerX" secondItem="m2S-Jp-Qdl" secondAttribute="centerX" id="3qD-02-Pki"/>
+                            <constraint firstAttribute="bottom" secondItem="jjh-eK-ktN" secondAttribute="bottom" constant="20" id="PQL-Fa-VLx"/>
                             <constraint firstItem="hUd-Ql-XrY" firstAttribute="width" secondItem="m2S-Jp-Qdl" secondAttribute="width" id="Ydd-KL-eC5"/>
                             <constraint firstItem="hUd-Ql-XrY" firstAttribute="centerY" secondItem="m2S-Jp-Qdl" secondAttribute="centerY" id="bpI-vz-p5W"/>
                             <constraint firstItem="hUd-Ql-XrY" firstAttribute="height" secondItem="m2S-Jp-Qdl" secondAttribute="height" id="dCw-pL-JtG"/>
+                            <constraint firstAttribute="trailing" secondItem="jjh-eK-ktN" secondAttribute="trailing" constant="26" id="jm5-7h-F7T"/>
                         </constraints>
                     </view>
                     <connections>

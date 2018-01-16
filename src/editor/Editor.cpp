@@ -111,26 +111,26 @@ Editor::DeltaList Editor::merge(const Editor& other) {
     if (rope_->empty() && engine_.revisions().empty()) {
         auto rope = Rope(*other.rope_);
         rope_->swap(rope);
+        
         linesIndex_.clear();
         if (!other.linesIndex_.empty()) {
             linesIndex_ = other.linesIndex_;
         }
-        
+
+        engine_.fastForward(other.engine_.revisions());
+
         Engine::DeltaList ret;
         auto str = rope_->string();
         auto cplist = ASCIIConverter::encode(gsl::make_span(str.c_str(), str.length()));
         ret.emplace_back(engine_.authorId(), engine_.nextRevId(), Revision::Operation::insert, Range(0, static_cast<int>(rope_->size())), cplist);
         return convertEngineDelta(ret);
     } else {
-        auto oldLen = rope_->size();
         auto deltas = engine_.sync(other.engine_);
         for (const auto& rev : deltas) {
             if (rev.op() == Revision::Operation::insert) {
                 updateLines(rev.range().location, rev.cplist());
-                oldLen += rev.cplist().size();
             } else {
                 updateLines(rev.range());
-                oldLen -= rev.range().length;
             }
         }
         return convertEngineDelta(deltas);

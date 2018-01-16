@@ -35,6 +35,8 @@ public:
     
     DeltaList sync(const Engine& other);
     
+    void fastForward(const std::vector<Revision>& revs);
+    
     const std::vector<Revision>& revisions() const {
         return revisions_;
     }
