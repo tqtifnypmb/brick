@@ -45,7 +45,6 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
                         auto intersect = affectRange.intersection(rev.range());
                         auto oldLength = rev.range().length;
                         rev.range().length = std::max(intersect.location - rev.range().location, 0);
-                        // FIXME: must create a revision belong to same author with valid revId
                         auto tail = Revision(rev.authorId(), std::numeric_limits<size_t>::max() - rev.revId(), rev.op(), Range(affectRange.maxLocation(), oldLength - rev.range().length));
                         return tail;
                     }
@@ -71,7 +70,6 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
                                 rev.range().length = std::max(0, revMaxLoc - intersect.maxLocation());
                             } else {
                                 rev.range().length = history.range().location - rev.range().location;
-                                // FIXME: must create a revision belong to same author with valid revId
                                 auto tail = Revision(rev.authorId(), std::numeric_limits<size_t>::max() - rev.revId(), rev.op(), Range(intersect.maxLocation(), revMaxLoc - intersect.maxLocation()));
                                 return tail;
                             }
@@ -259,7 +257,7 @@ Engine::DeltaList Engine::sync(const Engine& other) {
         }
     }
     
-    // 3. otherwise, we need to calculate delta of other's
+    // 3. otherwise, we need to calculate delta of each
     //    revision and apply it
     else {
         for (auto r : unknownBySelf) {
@@ -307,21 +305,8 @@ Engine::DeltaList Engine::sync(const Engine& other) {
     
 void Engine::fastForward(const std::vector<Revision>& revs) {
     if (revs.empty()) return;
-    
-    decltype(syncState_) state;
-    std::for_each(revs.begin(), revs.end(), [&state](const auto& rev) {
-        state[rev.authorId()] = std::max(state[rev.authorId()], rev.revId());
-    });
-    
-    for (auto& s : state) {
-        auto maxId = s.second + 1;
-        syncState_[s.first] = std::max(syncState_[s.first], maxId);
-    }
 
     revisions_.insert(revisions_.end(), revs.begin(), revs.end());
-//    for (const auto& rev : revs) {
-//        revisions_.emplace_back(authorId_, nextRevId(), rev.op(), rev.range(), rev.cplist());
-//    }
 }
     
 }   // namespace brick

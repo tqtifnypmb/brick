@@ -81,6 +81,9 @@ public:
 private:
     
     size_t authorId_;
+    
+    // revId_ only identify individual revision
+    // newer revision doesn't have to have greater revId_
     size_t revId_;
     detail::CodePointList cplist_;
     Operation op_;

@@ -62,7 +62,7 @@ private:
     gsl::not_null<Rope*> rope_;
     std::vector<Revision> revisions_;
     std::vector<Revision> pendingRevs_;
-    std::map<size_t, size_t> syncState_;    // authorId_ -> next valid revId
+
     size_t authorId_;
     size_t revId_;
 };
