@@ -103,7 +103,6 @@ TEST_F(ViewTest, insert) {
     EXPECT_EQ(rStr, cStr);
     EXPECT_EQ(cStr, c2Str);
     
-    std::cout<<"XXXXXXX"<<std::endl;
     child->select(Range(1, 0));
     child->insert(cplist);
     
@@ -126,7 +125,7 @@ TEST_F(ViewTest, erase) {
     EXPECT_EQ(rStr, insert);
     EXPECT_EQ(rStr, cStr);
     EXPECT_EQ(cStr, c2Str);
-    std::cout<<"XXXXXXX"<<std::endl;
+    
     child->select(Range(1, 2));
     child->erase();
     
@@ -138,79 +137,78 @@ TEST_F(ViewTest, erase) {
     EXPECT_EQ(cStr, c2Str);
 }
 
-//TEST_F(ViewTest, empty_sync) {
-//    root->insert(single_line);
-//    CHECK;
-//
-//    child->insert(single_line);
-//    CHECK;
-//
-//    root->insert(single_line);
-//    CHECK;
-//
-//    child->insert(single_line);
-//    CHECK;
-//
-//    child->insert(single_line);
-//    CHECK;
-//}
-//
-//TEST_F(ViewTest, insert_single_line) {
-//    root->insert(single_line);
-//    CHECK;
-//
-//    child->insert(single_line);
-//    CHECK;
-//
-//    child2->insert(single_line);
-//    CHECK;
-//}
-//
-//TEST_F(ViewTest, erase_single_line) {
-//    root->insert(single_line);
-//    CHECK;
-//
-//    root->select(Range(0, 5));
-//    root->erase();
-//    CHECK;
-//
-//    child->select(Range(0, 5));
-//    child->erase();
-//    CHECK;
-//
-//    child2->select(Range(0, 5));
-//    child2->erase();
-//    CHECK;
-//}
-//
-//TEST_F(ViewTest, insert_multi_line) {
-//    root->insert(four_lines);
-//    root->select(Range(0, 1));
-//    CHECK;
-//
-//    child->insert(four_lines);
-//    child->select(Range(0, 1));
-//    CHECK;
-//
-//    child2->insert(four_lines);
-//    child2->select(Range(0, 1));
-//    CHECK;
-//}
-//
-//TEST_F(ViewTest, erase_multi_line) {
-//    root->insert(four_lines);
-//    CHECK;
-//
-//    root->select(Range(0, 5));
-//    root->erase();
-//    CHECK;
-//
-//    child->select(Range(0, 5));
-//    child->erase();
-//    CHECK;
-//
-//    child2->select(Range(0, 5));
-//    child2->erase();
-//    CHECK;
-//}
+TEST_F(ViewTest, empty_sync) {
+    root->insert(single_line);
+    CHECK;
 
+    child->insert(single_line);
+    CHECK;
+
+    root->insert(single_line);
+    CHECK;
+
+    child->insert(single_line);
+    CHECK;
+
+    child->insert(single_line);
+    CHECK;
+}
+
+TEST_F(ViewTest, insert_single_line) {
+    root->insert(single_line);
+    CHECK;
+
+    child->insert(single_line);
+    CHECK;
+
+    child2->insert(single_line);
+    CHECK;
+}
+
+TEST_F(ViewTest, erase_single_line) {
+    root->insert(single_line);
+    CHECK;
+
+    root->select(Range(0, 5));
+    root->erase();
+    CHECK;
+
+    child->select(Range(0, 5));
+    child->erase();
+    CHECK;
+
+    child2->select(Range(0, 5));
+    child2->erase();
+    CHECK;
+}
+
+TEST_F(ViewTest, insert_multi_line) {
+    root->insert(four_lines);
+    root->select(Range(0, 1));
+    CHECK;
+
+    child->insert(four_lines);
+    child->select(Range(0, 1));
+    CHECK;
+
+    child2->insert(four_lines);
+    child2->select(Range(0, 1));
+    CHECK;
+}
+
+TEST_F(ViewTest, erase_multi_line) {
+    root->insert(four_lines);
+    CHECK;
+
+    root->select(Range(0, 5));
+    root->erase();
+    CHECK;
+
+    child->select(Range(0, 5));
+    child->erase();
+    CHECK;
+
+    child2->select(Range(0, 5));
+    child2->erase();
+    CHECK;
+}

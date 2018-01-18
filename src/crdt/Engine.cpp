@@ -8,6 +8,8 @@
 
 #include "Engine.h"
 
+#include <set>
+
 #include <iostream>
 #include <algorithm>
 
@@ -141,26 +143,43 @@ Engine::Engine(size_t authorId, not_null<Rope*> rope)
     , authorId_(authorId)
     , revId_(0) {}
     
-Engine::DeltaList Engine::insert(const CodePointList& cplist, size_t pos) {
+void Engine::insert(const CodePointList& cplist, size_t pos) {
     auto rev = Revision(authorId_, nextRevId(), Revision::Operation::insert, Range(static_cast<int>(pos), 1), cplist);
-    return appendRevision(rev);
+    Expects(rev.canApply(rope_));
+    
+    appendRevision(rev);
 }
     
-Engine::DeltaList Engine::erase(const Range& range) {
+void Engine::erase(const Range& range) {
     auto rev = Revision(authorId_, nextRevId(), Revision::Operation::erase, range);
-    return appendRevision(rev);
+    Expects(rev.canApply(rope_));
+    
+    appendRevision(rev);
 }
-   
+ 
+void Engine::appendRevision(Revision rev) {
+    if (rev.canApply(rope_)) {
+        rev.apply(rope_);
+        revisions_.push_back(rev);
+    } else {
+        pendingRevs_.push_back(rev);
+    }
+    
+    auto iter = pendingRevs_.begin();
+    while (iter != pendingRevs_.end()) {
+        auto rev = *iter;
+        bool applied = appendRevision(rev, true, nullptr);
+        if (applied) {
+            iter = pendingRevs_.erase(iter);
+        } else {
+            ++iter;
+        }
+    }
+}
+    
 bool Engine::appendRevision(Revision rev, bool pendingRev, std::vector<Revision>* d) {
     auto origin = rev;
     auto deltas = delta(rev);
-    
-    std::cout<<authorId_<<std::endl;
-    for (const auto& delta : deltas) {
-        std::cout<<delta.authorId()<<" "<<delta.range().location<<" "<<delta.range().length<<std::endl;
-    }
-    std::cout<<"===="<<std::endl;
-    
     for (const auto& delta : deltas) {
         if (!delta.canApply(rope_)) {
             if (!pendingRev) {
@@ -197,39 +216,90 @@ bool Engine::appendRevision(Revision rev, bool pendingRev, std::vector<Revision>
     return true;
 }
     
-Engine::DeltaList Engine::appendRevision(Revision rev) {
-    std::vector<Revision> deltas;
-    appendRevision(rev, false, &deltas);
-    return deltas;
-}
-    
 Engine::DeltaList Engine::sync(const Engine& other) {
     if (other.revisions_.empty()) {
         return {};
     }
 
-    auto validId = syncState_[other.authorId_];
-    size_t latestRevId = validId;
-    std::vector<Revision> deltaRevs;
-    std::for_each(other.revisions_.begin(), other.revisions_.end(), [&latestRevId, &deltaRevs, validId](const auto& rev) {
-        if (rev.revId() >= validId) {
-            deltaRevs.push_back(rev);
-            latestRevId = std::max(latestRevId, rev.revId());
+    auto comparator = [](const Revision& l, const Revision& r) {
+        if (l.authorId() == r.authorId()) {
+            return l.revId() < r.revId();
+        } else {
+            return l.authorId() < r.authorId();
         }
-    });
-
-    if (deltaRevs.empty()) {
+    };
+    
+    auto selfRevs = std::set<Revision, decltype(comparator)>(revisions_.begin(), revisions_.end(), comparator);
+    auto otherRevs = std::set<Revision, decltype(comparator)>(other.revisions_.begin(), other.revisions_.end(), comparator);
+    
+    auto unknownByOther = std::set<Revision, decltype(comparator)>(comparator);
+    std::set_difference(selfRevs.begin(), selfRevs.end(), otherRevs.begin(), otherRevs.end(), std::inserter(unknownByOther, unknownByOther.end()), comparator);
+    
+    auto unknownBySelf = std::set<Revision, decltype(comparator)>(comparator);
+    std::set_difference(otherRevs.begin(), otherRevs.end(), selfRevs.begin(), selfRevs.end(), std::inserter(unknownBySelf, unknownBySelf.end()), comparator);
+    
+    // 1. if self know everything about other, nothing needs to do
+    if (unknownBySelf.empty()) {
         return {};
     }
     
-    Expects(latestRevId >= validId);
-    syncState_[other.authorId_] = latestRevId + 1;
-
     std::vector<Revision> deltas;
-    for (const auto& rev : deltaRevs) {
-        if (rev.authorId() == authorId_) continue;
+    
+    // 2. other and self are already in sync state
+    //    we can just apply what self don't know without
+    //    calculating delta.
+    if (unknownByOther.empty()) {
+        for (const auto& rev : unknownBySelf) {
+            if (rev.canApply(rope_)) {
+                rev.apply(rope_);
+                revisions_.push_back(rev);
+            } else {
+                pendingRevs_.push_back(rev);
+            }
+        }
+    }
+    
+    // 3. otherwise, we need to calculate delta of other's
+    //    revision and apply it
+    else {
+        for (auto r : unknownBySelf) {
+            for (const Revision& history : unknownByOther) {
+                auto d = delta(history, r);
+                if (d.valid()) {
+                    deltas.push_back(d);
+                }
+            }
+            
+            if (r.valid()) {
+                deltas.push_back(r);
+            }
+        }
         
-        appendRevision(rev, false, &deltas);
+        auto locDesc = [](const Revision& lhs, const Revision& rhs) {
+            return !lhs.range().before(rhs.range());
+        };
+        std::sort(deltas.begin(), deltas.end(), locDesc);
+        
+        for (const auto& rev : deltas) {
+            if (rev.canApply(rope_)) {
+                rev.apply(rope_);
+                revisions_.push_back(rev);
+            } else {
+                pendingRevs_.push_back(rev);
+            }
+        }
+    }
+    
+    // 4. apply pending revisions
+    auto iter = pendingRevs_.begin();
+    while (iter != pendingRevs_.end()) {
+        auto rev = *iter;
+        bool applied = appendRevision(rev, true, &deltas);
+        if (applied) {
+            iter = pendingRevs_.erase(iter);
+        } else {
+            ++iter;
+        }
     }
     
     return deltas;

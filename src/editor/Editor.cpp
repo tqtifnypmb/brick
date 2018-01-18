@@ -32,12 +32,12 @@ Editor::Editor(size_t viewId)
     : Editor(viewId, CodePointList()) {}
     
 void Editor::insert(const CodePointList &cplist, size_t pos) {
-    auto delta = engine_.insert(cplist, pos);
+    engine_.insert(cplist, pos);
     updateLines(pos, cplist);
 }
     
 void Editor::erase(Range range) {
-    auto delta = engine_.erase(range);
+    engine_.erase(range);
     updateLines(range);
 }
     

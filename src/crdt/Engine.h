@@ -26,12 +26,12 @@ public:
     Engine(size_t authorId, gsl::not_null<Rope*> rope);
     
     template <class Converter>
-    DeltaList insert(gsl::span<const char> bytes, size_t pos);
-    DeltaList insert(const detail::CodePointList& cplist, size_t pos);
+    void insert(gsl::span<const char> bytes, size_t pos);
+    void insert(const detail::CodePointList& cplist, size_t pos);
     
-    DeltaList erase(const Range& range);
+    void erase(const Range& range);
     
-    DeltaList appendRevision(Revision rev);
+    void appendRevision(Revision rev);
     
     DeltaList sync(const Engine& other);
     
@@ -68,7 +68,7 @@ private:
 };
     
 template <class Converter>
-Engine::DeltaList Engine::insert(gsl::span<const char> bytes, size_t pos) {
+void Engine::insert(gsl::span<const char> bytes, size_t pos) {
     return insert(Converter::encode(bytes), pos);
 }
     
