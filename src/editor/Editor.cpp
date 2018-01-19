@@ -139,17 +139,22 @@ void Editor::sync(Editor& other) {
             }
         }
         
+        if (sync_cb_) {
+            auto deltaList = convertEngineDelta(deltas);
+            sync_cb_(deltaList);
+        }
+        
         for (const auto& rev : other_deltas) {
             if (rev.op() == Revision::Operation::insert) {
                 other.updateLines(rev.range().location, rev.cplist());
             } else {
                 other.updateLines(rev.range());
             }
-        }
-        
-        auto deltaList = convertEngineDelta(deltas);
-        if (sync_cb_) {
-            sync_cb_(deltaList);
+            
+            if (other.sync_cb_) {
+                auto deltaList = other.convertEngineDelta(other_deltas);
+                other.sync_cb_(deltaList);
+            }
         }
     }
 }
