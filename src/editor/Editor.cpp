@@ -19,17 +19,18 @@ using namespace brick::detail;
 namespace brick
 {
     
-Editor::Editor(size_t viewId, const CodePointList& cplist)
+Editor::Editor(size_t viewId, const CodePointList& cplist, SyncCb syncCb)
     : rope_(std::make_unique<Rope>())
-    , engine_(viewId, rope_.get()) {
+    , engine_(viewId, rope_.get())
+    , sync_cb_(syncCb) {
     if (!cplist.empty()) {
         rope_->insert(cplist, 0);
     }
     updateLines(0, cplist);
 }
    
-Editor::Editor(size_t viewId)
-    : Editor(viewId, CodePointList()) {}
+Editor::Editor(size_t viewId, SyncCb syncCb)
+    : Editor(viewId, CodePointList(), syncCb) {}
     
 void Editor::insert(const CodePointList &cplist, size_t pos) {
     engine_.insert(cplist, pos);
@@ -107,7 +108,7 @@ Editor::DeltaList Editor::convertEngineDelta(const Engine::DeltaList& deltas) {
     return ret;
 }
     
-Editor::DeltaList Editor::merge(const Editor& other) {
+void Editor::sync(Editor& other) {
     if (rope_->empty() && engine_.revisions().empty()) {
         auto rope = Rope(*other.rope_);
         rope_->swap(rope);
@@ -123,9 +124,13 @@ Editor::DeltaList Editor::merge(const Editor& other) {
         auto str = rope_->string();
         auto cplist = ASCIIConverter::encode(gsl::make_span(str.c_str(), str.length()));
         ret.emplace_back(engine_.authorId(), engine_.nextRevId(), Revision::Operation::insert, Range(0, static_cast<int>(rope_->size())), cplist);
-        return convertEngineDelta(ret);
+        
+        auto deltaList = convertEngineDelta(ret);
+        if (sync_cb_) {
+            sync_cb_(deltaList);
+        }
     } else {
-        auto deltas = engine_.sync(other.engine_);
+        auto [deltas, other_deltas] = engine_.sync(other.engine_);
         for (const auto& rev : deltas) {
             if (rev.op() == Revision::Operation::insert) {
                 updateLines(rev.range().location, rev.cplist());
@@ -133,7 +138,19 @@ Editor::DeltaList Editor::merge(const Editor& other) {
                 updateLines(rev.range());
             }
         }
-        return convertEngineDelta(deltas);
+        
+        for (const auto& rev : other_deltas) {
+            if (rev.op() == Revision::Operation::insert) {
+                other.updateLines(rev.range().location, rev.cplist());
+            } else {
+                other.updateLines(rev.range());
+            }
+        }
+        
+        auto deltaList = convertEngineDelta(deltas);
+        if (sync_cb_) {
+            sync_cb_(deltaList);
+        }
     }
 }
     

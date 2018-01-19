@@ -24,9 +24,10 @@ class EditorTest: public ::testing::Test {
 protected:
     
     virtual void SetUp() {
+        std::function<void(const Editor::DeltaList& deltaList)> syncCallback = [](const auto& dlist) {};
         auto cplist = ASCIIConverter::encode(gsl::make_span(input.c_str(), input.length()));
-        editor = std::make_unique<Editor>(0, cplist);
-        editor2 = std::make_unique<Editor>(1);
+        editor = std::make_unique<Editor>(0, cplist, syncCallback);
+        editor2 = std::make_unique<Editor>(1, syncCallback);
     }
     
     std::unique_ptr<Editor> editor;
@@ -119,7 +120,7 @@ TEST_F(EditorTest, tail_out_of_range) {
 }
 
 TEST_F(EditorTest, empth_merge) {
-    editor2->merge(*editor);
+    editor2->sync(*editor);
     auto eRegion = editor2->region(0, 10);
     auto ret = editor->region(10, 20);
     for (auto& rline : ret) {
@@ -131,8 +132,116 @@ TEST_F(EditorTest, empth_merge) {
     }
 }
 
+#define REGION_EQ(l, r)                                         \
+{                                                               \
+    EXPECT_EQ(l.size(), r.size());                              \
+    for (const auto& litem : l) {                               \
+        auto lstr = ASCIIConverter::decode(litem.second);       \
+        auto rstr = ASCIIConverter::decode(r[litem.first]);     \
+        EXPECT_EQ(lstr, rstr);                                  \
+    }                                                           \
+}
+
+TEST_F(EditorTest, merge_insert) {
+    editor2->sync(*editor);
+    
+    editor2->insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 0);
+    editor->sync(*editor2);
+    
+    auto r = editor->region(0, 10);
+    auto r2 = editor2->region(0, 10);
+    REGION_EQ(r, r2);
+    EXPECT_EQ(ASCIIConverter::decode(r[0]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[1]), "467890abcdef\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[2]), "ghijklm\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[3]), "nopqrstuvw\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[4]), "xyz");
+}
+
+TEST_F(EditorTest, merge_insert_2) {
+    editor2->sync(*editor);
+    
+    editor->insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 0);
+    editor2->sync(*editor);
+    
+    auto r = editor->region(0, 10);
+    auto r2 = editor2->region(0, 10);
+    REGION_EQ(r, r2);
+    EXPECT_EQ(ASCIIConverter::decode(r[0]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[1]), "467890abcdef\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[2]), "ghijklm\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[3]), "nopqrstuvw\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[4]), "xyz");
+}
+
+TEST_F(EditorTest, merge_erase) {
+    editor2->sync(*editor);
+    
+    editor->erase(Range(0, 8));
+    editor2->sync(*editor);
+    
+    auto r = editor->region(0, 10);
+    auto r2 = editor2->region(0, 10);
+    REGION_EQ(r, r2);
+    EXPECT_EQ(ASCIIConverter::decode(r[0]), "hijklm\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[1]), "nopqrstuvw\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[2]), "xyz");
+}
+
+TEST_F(EditorTest, merge_erase_2) {
+    editor2->sync(*editor);
+    
+    editor2->erase(Range(0, 8));
+    editor->sync(*editor2);
+    
+    auto r = editor->region(0, 10);
+    auto r2 = editor2->region(0, 10);
+    REGION_EQ(r, r2);
+    EXPECT_EQ(ASCIIConverter::decode(r[0]), "hijklm\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[1]), "nopqrstuvw\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[2]), "xyz");
+}
+
+TEST_F(EditorTest, merge_insert_erase) {
+    editor2->sync(*editor);
+    
+    editor->insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 0);
+    editor2->erase(Range(0, 8));
+    
+    editor->sync(*editor2);
+    editor2->sync(*editor);
+    
+    auto r = editor->region(0, 10);
+    auto r2 = editor2->region(0, 10);
+    REGION_EQ(r, r2);
+    EXPECT_EQ(ASCIIConverter::decode(r[0]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[1]), "467890hijklm\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[2]), "nopqrstuvw\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[3]), "xyz");
+}
+
+TEST_F(EditorTest, merge_insert_erase_2) {
+    editor2->sync(*editor);
+    
+    editor->insert<ASCIIConverter>(gsl::make_span(insert.c_str(), insert.length()), 0);
+    editor2->erase(Range(0, 8));
+    
+    editor2->sync(*editor);
+    editor->sync(*editor2);
+    
+    auto r = editor->region(0, 10);
+    auto r2 = editor2->region(0, 10);
+    REGION_EQ(r, r2);
+    EXPECT_EQ(ASCIIConverter::decode(r[0]), "1235\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[1]), "467890hijklm\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[2]), "nopqrstuvw\n");
+    EXPECT_EQ(ASCIIConverter::decode(r[3]), "xyz");
+}
+
 TEST(LineIndex, insert) {
-    auto editor = Editor(0);
+    std::function<void(const Editor::DeltaList& deltaList)> syncCallback = [](const auto& dlist) {};
+    
+    auto editor = Editor(0, syncCallback);
     auto region = editor.region(0, 1);
     EXPECT_EQ(region.empty(), true);
     
@@ -195,7 +304,8 @@ TEST(LineIndex, insert) {
 }
 
 TEST(LineIndex, erase) {
-    auto editor = Editor(0);
+    std::function<void(const Editor::DeltaList& deltaList)> syncCallback = [](const auto& dlist) {};
+    auto editor = Editor(0, syncCallback);
     auto region = editor.region(0, 1);
     EXPECT_EQ(region.empty(), true);
     

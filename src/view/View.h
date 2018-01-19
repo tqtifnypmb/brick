@@ -92,6 +92,7 @@ public:
     }
     
 private:
+    void editor_sync_cb(const Editor::DeltaList& deltaList);
     void update(std::vector<View*>& src);
     
     std::map<size_t, detail::CodePointList> regionImpl(size_t begRow, size_t endRow);

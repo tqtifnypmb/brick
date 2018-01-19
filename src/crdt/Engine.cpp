@@ -189,8 +189,8 @@ bool Engine::appendRevision(Revision rev, bool pendingRev, std::vector<Revision>
     
     for (const auto& delta : deltas) {
         delta.apply(rope_);
-        revisions_.push_back(delta);
     }
+    revisions_.push_back(rev);
     
     if (d != nullptr) {
         d->insert(d->end(), deltas.begin(), deltas.end());
@@ -214,7 +214,11 @@ bool Engine::appendRevision(Revision rev, bool pendingRev, std::vector<Revision>
     return true;
 }
     
-Engine::DeltaList Engine::sync(const Engine& other) {
+std::pair<Engine::DeltaList, Engine::DeltaList> Engine::sync(Engine& other) {
+    return sync(other, true);
+}
+    
+std::pair<Engine::DeltaList, Engine::DeltaList> Engine::sync(Engine& other, bool symetric) {
     if (other.revisions_.empty()) {
         return {};
     }
@@ -231,10 +235,20 @@ Engine::DeltaList Engine::sync(const Engine& other) {
     auto otherRevs = std::set<Revision, decltype(comparator)>(other.revisions_.begin(), other.revisions_.end(), comparator);
     
     auto unknownByOther = std::set<Revision, decltype(comparator)>(comparator);
-    std::set_difference(selfRevs.begin(), selfRevs.end(), otherRevs.begin(), otherRevs.end(), std::inserter(unknownByOther, unknownByOther.end()), comparator);
+    std::set_difference(selfRevs.begin(),
+                        selfRevs.end(),
+                        otherRevs.begin(),
+                        otherRevs.end(),
+                        std::inserter(unknownByOther, unknownByOther.end()),
+                        comparator);
     
     auto unknownBySelf = std::set<Revision, decltype(comparator)>(comparator);
-    std::set_difference(otherRevs.begin(), otherRevs.end(), selfRevs.begin(), selfRevs.end(), std::inserter(unknownBySelf, unknownBySelf.end()), comparator);
+    std::set_difference(otherRevs.begin(),
+                        otherRevs.end(),
+                        selfRevs.begin(),
+                        selfRevs.end(),
+                        std::inserter(unknownBySelf, unknownBySelf.end()),
+                        comparator);
     
     // 1. if self know everything about other, nothing needs to do
     if (unknownBySelf.empty()) {
@@ -242,15 +256,19 @@ Engine::DeltaList Engine::sync(const Engine& other) {
     }
     
     std::vector<Revision> deltas;
+    std::vector<Revision> other_deltas;
     
     // 2. other and self are already in sync state
     //    we can just apply what self don't know without
     //    calculating delta.
+    // Note: We assume that all unknownBySelf revisions are
+    //       applied after two engines have reached synced state.
     if (unknownByOther.empty()) {
         for (const auto& rev : unknownBySelf) {
             if (rev.canApply(rope_)) {
                 rev.apply(rope_);
                 revisions_.push_back(rev);
+                deltas.push_back(rev);
             } else {
                 pendingRevs_.push_back(rev);
             }
@@ -261,31 +279,49 @@ Engine::DeltaList Engine::sync(const Engine& other) {
     //    revision and apply it
     else {
         for (auto r : unknownBySelf) {
+            std::vector<Revision> subDeltas;
             for (const Revision& history : unknownByOther) {
                 auto d = delta(history, r);
                 if (d.valid()) {
-                    deltas.push_back(d);
+                    subDeltas.push_back(d);
                 }
             }
             
             if (r.valid()) {
-                deltas.push_back(r);
+                subDeltas.push_back(r);
             }
-        }
-        
-        auto locDesc = [](const Revision& lhs, const Revision& rhs) {
-            return !lhs.range().before(rhs.range());
-        };
-        std::sort(deltas.begin(), deltas.end(), locDesc);
-        
-        for (const auto& rev : deltas) {
-            if (rev.canApply(rope_)) {
+            
+            auto canApply = true;
+            for (const auto& rev : subDeltas) {
+                if (!rev.canApply(rope_)) {
+                    canApply = false;
+                    break;
+                }
+            }
+            
+            if (!canApply) {
+                pendingRevs_.push_back(r);
+                continue;
+            }
+            
+            auto locDesc = [](const Revision& lhs, const Revision& rhs) {
+                return !lhs.range().before(rhs.range());
+            };
+            std::sort(subDeltas.begin(), subDeltas.end(), locDesc);
+            for (const auto& rev : subDeltas) {
                 rev.apply(rope_);
-                revisions_.push_back(rev);
-            } else {
-                pendingRevs_.push_back(rev);
             }
+            
+            deltas.insert(deltas.end(), subDeltas.begin(), subDeltas.end());
         }
+        
+        if (symetric) {
+            auto d = other.sync(*this, false);
+            Expects(d.second.empty());
+            
+            other_deltas = std::move(d.first);
+        }
+        revisions_.insert(revisions_.end(), unknownBySelf.begin(), unknownBySelf.end());
     }
     
     // 4. apply pending revisions
@@ -300,7 +336,7 @@ Engine::DeltaList Engine::sync(const Engine& other) {
         }
     }
     
-    return deltas;
+    return {deltas, other_deltas};
 }
     
 void Engine::fastForward(const std::vector<Revision>& revs) {

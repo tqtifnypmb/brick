@@ -31,9 +31,7 @@ public:
     
     void erase(const Range& range);
     
-    void appendRevision(Revision rev);
-    
-    DeltaList sync(const Engine& other);
+    std::pair<DeltaList, DeltaList> sync(Engine& other);
     
     void fastForward(const std::vector<Revision>& revs);
     
@@ -57,7 +55,9 @@ private:
     Revision delta(const Revision& history, Revision& rev);
     std::vector<Revision> delta(Revision& rev);
     
+    void appendRevision(Revision rev);
     bool appendRevision(Revision rev, bool pendingRev, std::vector<Revision>* deltas);
+    std::pair<DeltaList, DeltaList> sync(Engine& other, bool symetric);
     
     gsl::not_null<Rope*> rope_;
     std::vector<Revision> revisions_;

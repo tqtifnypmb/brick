@@ -28,22 +28,23 @@ View::View(size_t viewId, UpdateCb cb)
     , viewId_(viewId)
     , parent_(nullptr)
     , sel_(Range()) {
-    editor_ = std::make_unique<Editor>(viewId);
+    auto syncCb = std::bind(&View::editor_sync_cb, this, std::placeholders::_1);
+    editor_ = std::make_unique<Editor>(viewId, syncCb);
 }
         
 View::View(size_t viewId, const std::string& filePath, UpdateCb cb)
     : View(viewId, cb) {
     // FIXME: - read file content
     filePath_ = filePath;
-    editor_ = std::make_unique<Editor>(viewId);
+    auto syncCb = std::bind(&View::editor_sync_cb, this, std::placeholders::_1);
+    editor_ = std::make_unique<Editor>(viewId, syncCb);
 }
     
 View::View(size_t viewId, View* parent, UpdateCb cb)
     : View(viewId, cb) {
     parent_ = parent;
     parent_->children_.push_back(this);
-    auto deltas = editor_->merge(*parent->editor_);
-    update_cb_(this, deltas);
+    editor_->sync(*parent->editor_);
 }
     
 void View::scroll(size_t begRow, size_t endRow) {
@@ -87,12 +88,17 @@ void View::save()  {
 void View::save(const std::string& filePath) {
 }
   
+void View::editor_sync_cb(const Editor::DeltaList& deltaList) {
+    if (update_cb_) {
+        update_cb_(this, deltaList);
+    }
+}
+    
 void View::update(std::vector<View*>& src) {
     // 1. update self
     bool selfNotExist = std::find(src.begin(), src.end(), this) == src.end();
     if (selfNotExist) {
-        auto deltas = editor_->merge(*src.front()->editor_);
-        update_cb_(this, deltas);
+        editor_->sync(*src.front()->editor_);
         src.push_back(this);
     }
     

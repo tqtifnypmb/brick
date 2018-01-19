@@ -23,8 +23,10 @@ class Editor {
 public:
     
     using DeltaList = std::vector<std::tuple<Revision, size_t, size_t>>;     // [(delta, begRow, endRow)]
-    Editor(size_t viewId, const detail::CodePointList& cplist);
-    explicit Editor(size_t viewId);
+    using SyncCb = std::function<void(const Editor::DeltaList& deltaList)>;
+    
+    Editor(size_t viewId, const detail::CodePointList& cplist, SyncCb syncCb);
+    Editor(size_t viewId, SyncCb syncCb);
     
     template <class Converter>
     void insert(gsl::span<const char> bytes, size_t pos);
@@ -32,7 +34,7 @@ public:
     void erase(Range range);
     void undo();
     
-    Editor::DeltaList merge(const Editor& editor);
+    void sync(Editor& editor);
     
     std::map<size_t, detail::CodePointList> region(size_t begLine, size_t endLine);
     
@@ -49,6 +51,7 @@ private:
     std::unique_ptr<Rope> rope_;
     Engine engine_;
     std::vector<size_t> linesIndex_;
+    SyncCb sync_cb_;
 };
     
 template <class Converter>
