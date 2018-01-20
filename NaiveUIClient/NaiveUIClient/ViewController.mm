@@ -62,6 +62,7 @@ using namespace brick;
                 std::terminate();
             }
         }
+        [self.pendingReqs removeAllObjects];
     }
 }
 

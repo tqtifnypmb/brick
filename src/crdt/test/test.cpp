@@ -184,7 +184,7 @@ TEST_F(EngineTest, sync_erase_erase) {
     input.erase(len * 3 / 4, len / 4);
     input.erase(0, len / 4);
     
-    EXPECT_EQ(rope2->string(), insert);
+    EXPECT_EQ(rope2->string(), input);
     EXPECT_EQ(rope->string(), rope2->string());
 }
 
@@ -200,7 +200,7 @@ TEST_F(EngineTest, sync_erase_erase_2) {
     input.erase(len * 3 / 4, len / 4);
     input.erase(0, len / 4);
     
-    EXPECT_EQ(rope2->string(), insert);
+    EXPECT_EQ(rope2->string(), input);
     EXPECT_EQ(rope->string(), rope2->string());
 }
 
@@ -213,9 +213,9 @@ TEST_F(EngineTest, sync_erase_erase_conflict) {
     engine2->sync(*engine);
     engine->sync(*engine2);
     
-    input.erase(0, len / 2);
+    input.erase(0, len / 4);
     
-    EXPECT_EQ(rope2->string(), insert);
+    EXPECT_EQ(rope2->string(), input);
     EXPECT_EQ(rope->string(), rope2->string());
 }
 
@@ -228,8 +228,8 @@ TEST_F(EngineTest, sync_erase_erase_conflict_2) {
     engine->sync(*engine2);
     engine2->sync(*engine);
     
-    input.erase(0, len / 2);
+    input.erase(0, len / 4);
     
-    EXPECT_EQ(rope2->string(), insert);
+    EXPECT_EQ(rope2->string(), input);
     EXPECT_EQ(rope->string(), rope2->string());
 }

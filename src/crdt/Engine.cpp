@@ -19,7 +19,7 @@ using namespace brick::detail;
 namespace brick
 {
     
-Revision Engine::delta(const Revision& history, Revision& rev) {
+Revision Engine::delta(Revision& history, Revision& rev) {
     Expects(!(history.authorId() == rev.authorId() && history.revId() == rev.revId()));
     
     if (history.range().before(rev.range())) {
@@ -36,9 +36,12 @@ Revision Engine::delta(const Revision& history, Revision& rev) {
         switch (history.op()) {
             case Revision::Operation::insert: {
                 switch (rev.op()) {
-                    case Revision::Operation::insert:
-                        rev.range().offset(history.affectLength());
+                    case Revision::Operation::insert: {
+                        if (history.prior(rev)) {
+                            rev.range().offset(history.affectLength());
+                        }
                         break;
+                    }
                         
                     case Revision::Operation::erase: {
                         auto affectRange = Range(history.range().location, history.affectLength());
