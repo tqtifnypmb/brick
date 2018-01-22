@@ -233,3 +233,50 @@ TEST_F(EngineTest, sync_erase_erase_conflict_2) {
     EXPECT_EQ(rope2->string(), input);
     EXPECT_EQ(rope->string(), rope2->string());
 }
+
+TEST_F(EngineTest, sync_2_insert_insert) {
+    engine2->sync(*engine);
+    
+    engine->insert<ASCIIConverter>(make_span(insert.c_str(), insert.length()), 0);
+    engine2->sync(*engine);
+    EXPECT_EQ(rope->string(), insert + input);
+    EXPECT_EQ(rope2->string(), rope->string());
+    
+    engine2->insert<ASCIIConverter>(make_span(insert.c_str(), insert.length()), input.length() + insert.length());
+    engine->sync(*engine2);
+    EXPECT_EQ(rope->string(), insert + input + insert);
+    EXPECT_EQ(rope2->string(), rope->string());
+}
+
+TEST_F(EngineTest, sync_2_insert_insert_conflict) {
+    engine2->sync(*engine);
+    
+    engine->insert<ASCIIConverter>(make_span(insert.c_str(), insert.length()), 0);
+    engine2->sync(*engine);
+    EXPECT_EQ(rope->string(), insert + input);
+    EXPECT_EQ(rope2->string(), rope->string());
+    
+    engine2->insert<ASCIIConverter>(make_span(input.c_str(), input.length()), 0);
+    engine->sync(*engine2);
+    EXPECT_EQ(rope2->string(), input + insert + input);
+    EXPECT_EQ(rope2->string(), rope->string());
+}
+
+TEST_F(EngineTest, sync_2_erase_erase) {
+    engine2->sync(*engine);
+    
+    auto len = input.length();
+    auto copy = input;
+    engine->erase(Range(0, len / 4));
+    engine2->sync(*engine);
+    input.erase(0, len / 4);
+    EXPECT_EQ(rope2->string(), input);
+    EXPECT_EQ(rope->string(), rope2->string());
+    
+    len -= len / 4;
+    input.erase(len * 3 / 4, len / 4);
+    engine2->erase(Range(len * 3 / 4, len / 4));
+    engine->sync(*engine2);
+    EXPECT_EQ(rope->string(), input);
+    EXPECT_EQ(rope->string(), rope2->string());
+}

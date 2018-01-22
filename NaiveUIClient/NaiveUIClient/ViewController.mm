@@ -170,7 +170,7 @@ static void coreCallback(CFSocketRef s, CFSocketCallBackType type, CFDataRef add
 
 - (void)insertText:(NSString*)str range:(NSRange)range; {
     [self select:range];
-    [self sendRequest:Request::MethodType::insert params:@{@"viewId": @(_viewId), @"bytes": str}];
+    [self sendRequest:Request::MethodType::insert params:@{@"viewId": @(_viewId), @"bytes": str, @"loc": @(range.location)}];
 }
 
 - (void)erase:(NSRange)range {

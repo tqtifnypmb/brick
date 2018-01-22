@@ -52,7 +52,7 @@ public:
     }
     
 private:
-    Revision delta(Revision& history, Revision& rev);
+    Revision delta(const Revision& history, Revision& rev);
     std::vector<Revision> delta(Revision& rev);
     
     void appendRevision(Revision rev);

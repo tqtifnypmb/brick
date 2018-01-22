@@ -19,7 +19,7 @@ using namespace brick::detail;
 namespace brick
 {
     
-Revision Engine::delta(Revision& history, Revision& rev) {
+Revision Engine::delta(const Revision& history, Revision& rev) {
     Expects(!(history.authorId() == rev.authorId() && history.revId() == rev.revId()));
     
     if (history.range().before(rev.range())) {
@@ -226,32 +226,61 @@ std::pair<Engine::DeltaList, Engine::DeltaList> Engine::sync(Engine& other, bool
         return {};
     }
 
-    auto comparator = [](const Revision& l, const Revision& r) {
-        if (l.authorId() == r.authorId()) {
-            return l.revId() < r.revId();
-        } else {
-            return l.authorId() < r.authorId();
-        }
+    // find revisions unknown by `byEngine` from `fromEngine`
+    auto findUnknown = [](Engine& byEngine, std::vector<Revision>& unknown, const Engine& fromEngine) {
+        auto comparator = [](const Revision& l, const Revision& r) {
+            if (l.authorId() == r.authorId()) {
+                return l.revId() < r.revId();
+            } else {
+                return l.authorId() < r.authorId();
+            }
+        };
+        auto fromRevs = std::set<Revision, decltype(comparator)>(fromEngine.revisions().begin(), fromEngine.revisions().end(), comparator);
+        auto byRevs = std::set<Revision, decltype(comparator)>(byEngine.revisions().begin(), byEngine.revisions().end(), comparator);
+        std::set_difference(fromRevs.begin(),
+                            fromRevs.end(),
+                            byRevs.begin(),
+                            byRevs.end(),
+                            std::back_inserter(unknown),
+                            comparator);
+//        return;
+//        auto lastState = byEngine.sync_state_.find(fromEngine.authorId_);
+//        if (lastState == byEngine.sync_state_.end()) {
+//            auto comparator = [](const Revision& l, const Revision& r) {
+//                if (l.authorId() == r.authorId()) {
+//                    return l.revId() < r.revId();
+//                } else {
+//                    return l.authorId() < r.authorId();
+//                }
+//            };
+//
+//            auto fromRevs = std::set<Revision, decltype(comparator)>(fromEngine.revisions().begin(), fromEngine.revisions().end(), comparator);
+//            auto byRevs = std::set<Revision, decltype(comparator)>(byEngine.revisions().begin(), byEngine.revisions().end(), comparator);
+//            std::set_difference(fromRevs.begin(),
+//                                fromRevs.end(),
+//                                byRevs.begin(),
+//                                byRevs.end(),
+//                                std::back_inserter(unknown),
+//                                comparator);
+//        } else {
+//            auto lastAuthorId = lastState->second.first;
+//            auto lastRevId = lastState->second.second;
+//            auto lastknown = std::find_if(fromEngine.revisions().begin(), fromEngine.revisions().end(), [lastAuthorId, lastRevId](const auto& rev) {
+//                return rev.authorId() == lastAuthorId && rev.revId() == lastRevId;
+//            });
+//
+//            if (lastknown != fromEngine.revisions().end()) {
+//                std::advance(lastknown, 1);
+//                unknown.assign(lastknown, fromEngine.revisions().end());
+//            }
+//        }
     };
     
-    auto selfRevs = std::set<Revision, decltype(comparator)>(revisions_.begin(), revisions_.end(), comparator);
-    auto otherRevs = std::set<Revision, decltype(comparator)>(other.revisions_.begin(), other.revisions_.end(), comparator);
+    std::vector<Revision> unknownBySelf;
+    std::vector<Revision> unknownByOther;
+    findUnknown(*this, unknownBySelf, other);
+    findUnknown(other, unknownByOther, *this);
     
-    auto unknownByOther = std::set<Revision, decltype(comparator)>(comparator);
-    std::set_difference(selfRevs.begin(),
-                        selfRevs.end(),
-                        otherRevs.begin(),
-                        otherRevs.end(),
-                        std::inserter(unknownByOther, unknownByOther.end()),
-                        comparator);
-    
-    auto unknownBySelf = std::set<Revision, decltype(comparator)>(comparator);
-    std::set_difference(otherRevs.begin(),
-                        otherRevs.end(),
-                        selfRevs.begin(),
-                        selfRevs.end(),
-                        std::inserter(unknownBySelf, unknownBySelf.end()),
-                        comparator);
     
     // 1. if self know everything about other, nothing needs to do
     if (unknownBySelf.empty()) {
@@ -261,6 +290,13 @@ std::pair<Engine::DeltaList, Engine::DeltaList> Engine::sync(Engine& other, bool
     std::vector<Revision> deltas;
     std::vector<Revision> other_deltas;
     
+    // FIXME: if there's a in-flight request arrived after two engine synced
+    // then `unknownByOther` will be empty and that reqeust would be incorrectly
+    // treated as if it's made after two engines are synced -- no delta is made.
+    // that's wrong.
+    // Need a mechanism to identify whether a request is made in synced-state or not.
+    // Just because `unknownByOther` is empty doesn't means request is made in synced-state;
+
     // 2. other and self are already in sync state
     //    we can just apply what self don't know without
     //    calculating delta.
@@ -321,7 +357,7 @@ std::pair<Engine::DeltaList, Engine::DeltaList> Engine::sync(Engine& other, bool
         if (symetric) {
             auto d = other.sync(*this, false);
             Expects(d.second.empty());
-            
+
             other_deltas = std::move(d.first);
         }
         revisions_.insert(revisions_.end(), unknownBySelf.begin(), unknownBySelf.end());
