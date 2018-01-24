@@ -296,7 +296,18 @@ std::pair<Engine::DeltaList, Engine::DeltaList> Engine::sync(Engine& other, bool
     // that's wrong.
     // Need a mechanism to identify whether a request is made in synced-state or not.
     // Just because `unknownByOther` is empty doesn't means request is made in synced-state;
-
+//    if (unknownByOther.empty()) {
+//        auto lastSyncState = other.sync_state_.find(authorId_);
+//        Expects(lastSyncState != other.sync_state_.end());
+//        auto lastknown = std::find_if(revisions_.begin(), revisions_.end(), [lastAuthorId = lastSyncState->second.first, lastRevId = lastSyncState->second.second](const auto& rev) {
+//            return rev.authorId() == lastAuthorId && rev.revId() == lastRevId;
+//        });
+//        if (lastknown != revisions_.end()) {
+//            std::advance(lastknown, 1);
+//            unknownByOther.assign(lastknown, revisions_.end());
+//        }
+//    }
+    
     // 2. other and self are already in sync state
     //    we can just apply what self don't know without
     //    calculating delta.
@@ -353,15 +364,15 @@ std::pair<Engine::DeltaList, Engine::DeltaList> Engine::sync(Engine& other, bool
             
             deltas.insert(deltas.end(), subDeltas.begin(), subDeltas.end());
         }
-        
-        if (symetric) {
-            auto d = other.sync(*this, false);
-            Expects(d.second.empty());
-
-            other_deltas = std::move(d.first);
-        }
-        revisions_.insert(revisions_.end(), unknownBySelf.begin(), unknownBySelf.end());
     }
+    
+    if (symetric) {
+        auto d = other.sync(*this, false);
+        Expects(d.second.empty());
+        
+        other_deltas = std::move(d.first);
+    }
+    revisions_.insert(revisions_.end(), unknownBySelf.begin(), unknownBySelf.end());
     
     // 4. apply pending revisions
     auto iter = pendingRevs_.begin();
