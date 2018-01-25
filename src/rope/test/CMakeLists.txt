@@ -4,10 +4,6 @@ set(SRC ${SRC}
 add_executable (rope_test.out ${SRC})
 
 target_compile_features(rope_test.out PUBLIC cxx_std_17)
-
-#gtest
-target_include_directories(rope_test.out PUBLIC ${ROOT_DIR}/gtest/include)
-target_include_directories(rope_test.out PUBLIC ${ROOT_DIR}/src/3party)
-
-target_link_libraries(rope_test.out PUBLIC ${ROOT_DIR}/gtest/libgtest.a 
-                                   ${ROOT_DIR}/gtest/libgtest_main.a)
+target_include_directories(rope_test.out PUBLIC ${EXTERNAL_INSTALL_DIR}/include)
+target_link_libraries(rope_test.out PUBLIC ${EXTERNAL_INSTALL_DIR}/lib/libgtest.a
+                                   ${EXTERNAL_INSTALL_DIR}/lib/libgtest_main.a)

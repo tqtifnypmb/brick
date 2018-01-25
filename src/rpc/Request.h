@@ -9,7 +9,7 @@
 #pragma once
 
 #include <string>
-#include "../3party/json.hpp"
+#include <nlohmann/json.hpp>
 
 namespace brick
 {

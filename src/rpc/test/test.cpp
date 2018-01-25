@@ -9,7 +9,7 @@
 
 #include "../Request.h"
 #include "../Rpc.h"
-#include "../../3party/json.hpp"
+#include <nlohmann/json.hpp>
 #include "testClient/TestClient.h"
 #include "testServer/testServer.h"
 

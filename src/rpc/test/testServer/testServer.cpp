@@ -7,7 +7,7 @@
 //
 
 #include "testServer.h"
-#include "../../../3party/json.hpp"
+#include <nlohmann/json.hpp>
 #include <gsl/gsl>
 #include <iostream>
 

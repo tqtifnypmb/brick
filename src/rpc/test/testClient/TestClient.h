@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "../rpc/Request.h"
+#include "../../Request.h"
 
 namespace brick
 {
